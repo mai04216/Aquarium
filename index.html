@@ -9,6 +9,7 @@
 <body>
   <div class="hud">
     <div class="balance" id="balance">🪙 <span id="balance-value">0</span></div>
+    <button class="settings-btn" id="open-settings" aria-label="設定">⚙</button>
   </div>
 
   <div class="tank" id="tank">
@@ -61,6 +62,32 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="settings-modal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2>設定</h2>
+        <button id="close-settings" aria-label="閉じる">✕</button>
+      </div>
+      <ul class="settings-list">
+        <li class="settings-item">
+          <span>BGM</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-bgm" />
+            <span class="switch-label"></span>
+          </label>
+        </li>
+        <li class="settings-item">
+          <span>効果音</span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-sfx" />
+            <span class="switch-label"></span>
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="sound.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
