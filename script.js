@@ -20,8 +20,8 @@ const itemMaster = [
   { id: "fish_electric_eel", name: "デンキウナギ", category: "fish", rarity: "スーパーレア", price: 3000, intervalSec: 16, amount: 65, image: "assets/fish_electric_eel.png" },
   { id: "fish_giant_salamander", name: "オオサンショウウオ", category: "fish", rarity: "スーパーレア", price: 3500, intervalSec: 15, amount: 70, image: "assets/fish_giant_salamander.png" },
   { id: "fish_oarfish", name: "リュウグウノツカイ", category: "fish", rarity: "スーパーレア", price: 5000, intervalSec: 12, amount: 100, image: "assets/fish_oarfish.png" },
-  { id: "deco_seaweed_green", name: "海藻(緑)", category: "decoration", rarity: "装飾", price: 50, image: "assets/deco_seaweed_green.png" },
-  { id: "deco_seaweed_red", name: "海藻(赤)", category: "decoration", rarity: "装飾", price: 60, image: "assets/deco_seaweed_red.png" },
+  { id: "deco_seaweed_green", name: "海藻(緑)", category: "decoration", rarity: "装飾", price: 50, image: "assets/deco_seaweed_green.png", sway: true },
+  { id: "deco_seaweed_red", name: "海藻(赤)", category: "decoration", rarity: "装飾", price: 60, image: "assets/deco_seaweed_red.png", sway: true },
   { id: "deco_rock_gray", name: "岩(グレー)", category: "decoration", rarity: "装飾", price: 40, image: "assets/deco_rock_gray.png" },
   { id: "deco_rock_brown", name: "岩(ブラウン)", category: "decoration", rarity: "装飾", price: 45, image: "assets/deco_rock_brown.png" },
 ];
@@ -77,6 +77,12 @@ function addDecorationToTank(item, leftPercentOverride, bottomPercentOverride) {
   const bottomPercent = bottomPercentOverride !== undefined ? bottomPercentOverride : 2 + Math.random() * 5;
   el.style.left = `${leftPercent}%`;
   el.style.bottom = `${bottomPercent}%`;
+
+  if (item.sway) {
+    el.classList.add("seaweed-sway");
+    el.style.animationDuration = `${2.5 + Math.random() * 2}s`;
+    el.style.animationDelay = `-${Math.random() * 3}s`;
+  }
 
   tank.appendChild(el);
   placedDecorations.push({ element: el });
