@@ -26,18 +26,42 @@ function findItem(itemId) {
   return itemMaster.find((i) => i.id === itemId);
 }
 
-const swimDuration = 9 + Math.random() * 6; // 9〜15秒
-const swayDuration = 2 + Math.random() * 1.5; // 2〜3.5秒
-const topPercent = 20 + Math.random() * 55; // 上下端に寄りすぎないようにする
+const MAX_FISH = 10; // 配置上限(2.5節の例に準拠)
+
+function setupFishVisual(el, item) {
+  const swimDuration = 9 + Math.random() * 6; // 9〜15秒
+  const swayDuration = 2 + Math.random() * 1.5; // 2〜3.5秒
+  const topPercent = 10 + Math.random() * 70; // 上下端に寄りすぎないようにする
+
+  el.style.animationDuration = `${swimDuration}s`;
+  el.style.top = `${topPercent}%`;
+
+  const shape = el.querySelector(".fish-shape");
+  shape.style.animationDuration = `${swayDuration}s`;
+  shape.style.backgroundImage = `url(${item.image})`;
+}
+
+function addFishToTank(item) {
+  const el = document.createElement("div");
+  el.className = "fish";
+
+  const shape = document.createElement("div");
+  shape.className = "fish-shape";
+  el.appendChild(shape);
+
+  tank.appendChild(el);
+  setupFishVisual(el, item);
+
+  coinFish.push({
+    element: el,
+    intervalSec: item.intervalSec,
+    amount: item.amount,
+    lastCoinTime: performance.now(),
+  });
+}
 
 const startingItem = findItem(fish.dataset.itemId);
-
-fish.style.animationDuration = `${swimDuration}s`;
-fish.style.top = `${topPercent}%`;
-
-const fishShape = fish.querySelector(".fish-shape");
-fishShape.style.animationDuration = `${swayDuration}s`;
-fishShape.style.backgroundImage = `url(${startingItem.image})`;
+setupFishVisual(fish, startingItem);
 
 let coins = 0;
 
@@ -139,6 +163,7 @@ function purchaseItem(itemId) {
   }
 
   updateShopButtons();
+  renderInventory();
 }
 
 shopList.addEventListener("click", (event) => {
@@ -156,3 +181,70 @@ closeShopBtn.addEventListener("click", () => {
 });
 
 renderShop();
+
+// --- インベントリ+配置(F09 S03、F02) ---
+
+const openInventoryBtn = document.getElementById("open-inventory");
+const closeInventoryBtn = document.getElementById("close-inventory");
+const inventoryModal = document.getElementById("inventory-modal");
+const inventoryList = document.getElementById("inventory-list");
+const fishCountInfo = document.getElementById("fish-count-info");
+
+function renderInventory() {
+  fishCountInfo.textContent = `配置中の魚: ${coinFish.length} / ${MAX_FISH}`;
+  inventoryList.innerHTML = "";
+
+  if (inventory.length === 0) {
+    const li = document.createElement("li");
+    li.className = "empty-message";
+    li.textContent = "所持しているアイテムはありません。ショップで購入してください。";
+    inventoryList.appendChild(li);
+    return;
+  }
+
+  const isFull = coinFish.length >= MAX_FISH;
+
+  inventory.forEach(({ itemTypeId, count }) => {
+    const item = findItem(itemTypeId);
+    const li = document.createElement("li");
+    li.className = "shop-item";
+    li.innerHTML = `
+      <img class="shop-item-swatch" src="${item.image}" alt="${item.name}" />
+      <div class="shop-item-info">
+        <div class="shop-item-name">${item.name} × ${count}</div>
+        <div class="shop-item-desc">${item.intervalSec}秒ごとに${item.amount}コイン生成</div>
+      </div>
+      <button data-item-id="${item.id}" ${isFull ? "disabled" : ""}>配置する</button>
+    `;
+    inventoryList.appendChild(li);
+  });
+}
+
+function placeFish(itemId) {
+  if (coinFish.length >= MAX_FISH) return;
+
+  const entry = inventory.find((i) => i.itemTypeId === itemId);
+  if (!entry || entry.count <= 0) return;
+
+  entry.count -= 1;
+  if (entry.count === 0) {
+    inventory = inventory.filter((i) => i.itemTypeId !== itemId);
+  }
+
+  addFishToTank(findItem(itemId));
+  renderInventory();
+}
+
+inventoryList.addEventListener("click", (event) => {
+  const btn = event.target.closest("button[data-item-id]");
+  if (btn) placeFish(btn.dataset.itemId);
+});
+
+openInventoryBtn.addEventListener("click", () => {
+  inventoryModal.hidden = false;
+  renderInventory();
+});
+
+closeInventoryBtn.addEventListener("click", () => {
+  inventoryModal.hidden = true;
+});

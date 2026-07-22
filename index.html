@@ -19,6 +19,7 @@
 
   <div class="bottom-nav">
     <button id="open-shop">🛒 ショップ</button>
+    <button id="open-inventory">🎒 インベントリ</button>
   </div>
 
   <div class="modal-overlay" id="shop-modal" hidden>
@@ -28,6 +29,17 @@
         <button id="close-shop" aria-label="閉じる">✕</button>
       </div>
       <ul class="shop-list" id="shop-list"></ul>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="inventory-modal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2>インベントリ</h2>
+        <button id="close-inventory" aria-label="閉じる">✕</button>
+      </div>
+      <p class="fish-count-info" id="fish-count-info"></p>
+      <ul class="shop-list" id="inventory-list"></ul>
     </div>
   </div>
 

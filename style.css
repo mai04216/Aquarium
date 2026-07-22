@@ -124,6 +124,7 @@ body {
   width: min(90vw, 800px);
   display: flex;
   justify-content: center;
+  gap: 12px;
 }
 
 .bottom-nav button {
@@ -237,4 +238,17 @@ body {
   background: #555;
   color: #aaa;
   cursor: not-allowed;
+}
+
+.fish-count-info {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.empty-message {
+  list-style: none;
+  opacity: 0.75;
+  padding: 12px 0;
+  text-align: center;
 }
