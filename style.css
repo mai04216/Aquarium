@@ -252,3 +252,54 @@ body {
   padding: 12px 0;
   text-align: center;
 }
+
+.fish {
+  cursor: pointer;
+}
+
+.fish.selected .fish-shape {
+  filter: drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 6px #ffd447);
+}
+
+.fish-action-panel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(10, 20, 40, 0.85);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  max-width: 200px;
+  z-index: 5;
+}
+
+.fish-action-name {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.fish-action-hint {
+  margin: 0 0 8px;
+  opacity: 0.8;
+}
+
+.fish-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fish-action-buttons button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #2b6cb0;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.fish-action-buttons button:hover {
+  background: #2c5282;
+}

@@ -44,6 +44,7 @@ function setupFishVisual(el, item) {
 function addFishToTank(item) {
   const el = document.createElement("div");
   el.className = "fish";
+  el.dataset.itemId = item.id;
 
   const shape = document.createElement("div");
   shape.className = "fish-shape";
@@ -248,3 +249,70 @@ openInventoryBtn.addEventListener("click", () => {
 closeInventoryBtn.addEventListener("click", () => {
   inventoryModal.hidden = true;
 });
+
+// --- 配置済みアイテムの移動・撤去(F03) ---
+
+const fishActionPanel = document.getElementById("fish-action-panel");
+const fishActionName = document.getElementById("fish-action-name");
+const fishActionRemoveBtn = document.getElementById("fish-action-remove");
+const fishActionCancelBtn = document.getElementById("fish-action-cancel");
+
+let selectedFishEl = null;
+
+function selectFish(el) {
+  if (selectedFishEl === el) {
+    deselectFish();
+    return;
+  }
+  deselectFish();
+  selectedFishEl = el;
+  el.classList.add("selected");
+  fishActionName.textContent = `選択中: ${findItem(el.dataset.itemId).name}`;
+  fishActionPanel.hidden = false;
+}
+
+function deselectFish() {
+  if (selectedFishEl) selectedFishEl.classList.remove("selected");
+  selectedFishEl = null;
+  fishActionPanel.hidden = true;
+}
+
+function removeFishFromTank(el) {
+  const itemId = el.dataset.itemId;
+  const idx = coinFish.findIndex((f) => f.element === el);
+  if (idx !== -1) coinFish.splice(idx, 1);
+  el.remove();
+
+  const existing = inventory.find((i) => i.itemTypeId === itemId);
+  if (existing) {
+    existing.count += 1;
+  } else {
+    inventory.push({ itemTypeId: itemId, count: 1 });
+  }
+
+  renderInventory();
+}
+
+tank.addEventListener("click", (event) => {
+  const fishEl = event.target.closest(".fish");
+  if (fishEl) {
+    selectFish(fishEl);
+    return;
+  }
+
+  if (selectedFishEl && event.target === tank) {
+    const rect = tank.getBoundingClientRect();
+    const relY = (event.clientY - rect.top) / rect.height;
+    const topPercent = Math.min(85, Math.max(5, relY * 100));
+    selectedFishEl.style.top = `${topPercent}%`;
+    deselectFish();
+  }
+});
+
+fishActionRemoveBtn.addEventListener("click", () => {
+  if (!selectedFishEl) return;
+  removeFishFromTank(selectedFishEl);
+  deselectFish();
+});
+
+fishActionCancelBtn.addEventListener("click", deselectFish);
