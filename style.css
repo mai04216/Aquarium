@@ -60,29 +60,10 @@ body {
   width: 100%;
   height: 100%;
   animation: sway-y 2.4s ease-in-out infinite;
-}
-
-.fish-shape::before {
-  content: "";
-  position: absolute;
-  right: 18px;
-  top: 0;
-  width: 52px;
-  height: 32px;
-  background: #ff8c42;
-  border-radius: 50%;
-}
-
-.fish-shape::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 6px;
-  width: 0;
-  height: 0;
-  border-top: 10px solid transparent;
-  border-bottom: 10px solid transparent;
-  border-right: 20px solid #ff8c42;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  image-rendering: pixelated;
 }
 
 @keyframes swim-x {
@@ -222,9 +203,10 @@ body {
 }
 
 .shop-item-swatch {
-  width: 32px;
-  height: 20px;
-  border-radius: 50%;
+  width: 44px;
+  height: 30px;
+  object-fit: contain;
+  image-rendering: pixelated;
   flex-shrink: 0;
 }
 
