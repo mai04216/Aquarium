@@ -276,6 +276,23 @@ body {
   filter: drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 6px #ffd447);
 }
 
+.decoration.seaweed-sway {
+  transform-origin: bottom center;
+  animation-name: seaweed-sway;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes seaweed-sway {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
 .fish-action-panel {
   position: absolute;
   top: 10px;
