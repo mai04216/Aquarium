@@ -28,10 +28,11 @@ function findItem(itemId) {
 
 const MAX_FISH = 10; // 配置上限(2.5節の例に準拠)
 
-function setupFishVisual(el, item) {
+function setupFishVisual(el, item, topPercentOverride) {
   const swimDuration = 9 + Math.random() * 6; // 9〜15秒
   const swayDuration = 2 + Math.random() * 1.5; // 2〜3.5秒
-  const topPercent = 10 + Math.random() * 70; // 上下端に寄りすぎないようにする
+  const topPercent =
+    topPercentOverride !== undefined ? topPercentOverride : 10 + Math.random() * 70; // 上下端に寄りすぎないようにする
 
   el.style.animationDuration = `${swimDuration}s`;
   el.style.top = `${topPercent}%`;
@@ -41,7 +42,7 @@ function setupFishVisual(el, item) {
   shape.style.backgroundImage = `url(${item.image})`;
 }
 
-function addFishToTank(item) {
+function addFishToTank(item, topPercentOverride) {
   const el = document.createElement("div");
   el.className = "fish";
   el.dataset.itemId = item.id;
@@ -51,7 +52,7 @@ function addFishToTank(item) {
   el.appendChild(shape);
 
   tank.appendChild(el);
-  setupFishVisual(el, item);
+  setupFishVisual(el, item, topPercentOverride);
 
   coinFish.push({
     element: el,
@@ -70,6 +71,7 @@ function addCoins(amount) {
   coins += amount;
   balanceValue.textContent = coins;
   updateShopButtons();
+  saveState();
 }
 
 function spawnCoinPopup(sourceEl, amount) {
@@ -165,6 +167,7 @@ function purchaseItem(itemId) {
 
   updateShopButtons();
   renderInventory();
+  saveState();
 }
 
 shopList.addEventListener("click", (event) => {
@@ -234,6 +237,7 @@ function placeFish(itemId) {
 
   addFishToTank(findItem(itemId));
   renderInventory();
+  saveState();
 }
 
 inventoryList.addEventListener("click", (event) => {
@@ -291,6 +295,7 @@ function removeFishFromTank(el) {
   }
 
   renderInventory();
+  saveState();
 }
 
 tank.addEventListener("click", (event) => {
@@ -306,6 +311,7 @@ tank.addEventListener("click", (event) => {
     const topPercent = Math.min(85, Math.max(5, relY * 100));
     selectedFishEl.style.top = `${topPercent}%`;
     deselectFish();
+    saveState();
   }
 });
 
@@ -316,3 +322,63 @@ fishActionRemoveBtn.addEventListener("click", () => {
 });
 
 fishActionCancelBtn.addEventListener("click", deselectFish);
+
+// --- セーブ/ロード(F10。4.2のlocalStorage案に準拠) ---
+
+const SAVE_KEY = "myaquarium_save";
+const SAVE_VERSION = 1;
+
+function serializeState() {
+  return {
+    version: SAVE_VERSION,
+    coins,
+    inventory,
+    placements: coinFish.map((f) => ({
+      itemTypeId: f.element.dataset.itemId,
+      topPercent: parseFloat(f.element.style.top) || 50,
+    })),
+    lastSavedAt: Date.now(),
+  };
+}
+
+function saveState() {
+  localStorage.setItem(SAVE_KEY, JSON.stringify(serializeState()));
+}
+
+function loadState() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return null;
+
+  try {
+    const data = JSON.parse(raw);
+    return data.version === SAVE_VERSION ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+function restoreState(data) {
+  coins = data.coins;
+  balanceValue.textContent = coins;
+  inventory = Array.isArray(data.inventory) ? data.inventory : [];
+
+  coinFish.forEach((f) => f.element.remove());
+  coinFish.length = 0;
+
+  (data.placements || []).forEach(({ itemTypeId, topPercent }) => {
+    const item = findItem(itemTypeId);
+    if (item) addFishToTank(item, topPercent);
+  });
+
+  updateShopButtons();
+  renderInventory();
+}
+
+const savedState = loadState();
+if (savedState) {
+  restoreState(savedState);
+} else {
+  saveState();
+}
+
+setInterval(saveState, 30000);
