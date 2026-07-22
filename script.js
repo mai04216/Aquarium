@@ -6,7 +6,12 @@ const balanceValue = document.getElementById("balance-value");
 
 let itemMaster = []; // 商品マスタ(魚・装飾)
 let tankMaster = []; // 水槽マスタ
-let gameConfig = { offlineCapHours: 8 }; // バランス設定(master.jsonで上書き)
+let gameConfig = {
+  offlineCapHours: 8,
+  feedBuffMultiplier: 1.5,
+  feedBuffDurationSec: 600,
+  feedCooldownSec: 1800,
+}; // バランス設定(master.jsonで上書き)
 
 function findItem(itemId) {
   return itemMaster.find((i) => i.id === itemId);
@@ -124,8 +129,9 @@ function tick(now) {
 
     if (elapsed >= intervalMs) {
       const times = Math.floor(elapsed / intervalMs);
-      addCoins(times * f.amount);
-      spawnCoinPopup(f.element, times * f.amount);
+      const gained = Math.floor(times * f.amount * currentMultiplier());
+      addCoins(gained);
+      spawnCoinPopup(f.element, gained);
       Sound.coin();
       f.lastCoinTime += times * intervalMs;
     }
@@ -574,6 +580,72 @@ welcomeOkBtn.addEventListener("click", () => {
   welcomeModal.hidden = true;
   Sound.ui();
 });
+
+// --- 餌やり(F14。2.3。バフ型・ペナルティなし。クールタイム制) ---
+// バフ・クールタイムはメモリ保持のみ(リロードでリセット)。オフライン中はバフ非適用。
+
+const feedBtn = document.getElementById("feed-btn");
+const buffIndicator = document.getElementById("buff-indicator");
+const buffRemaining = document.getElementById("buff-remaining");
+
+let buffEndTime = 0; // バフ終了時刻(ms)
+let lastFeedTime = -Infinity; // 直近の餌やり時刻(ms)
+
+function currentMultiplier() {
+  return Date.now() < buffEndTime ? gameConfig.feedBuffMultiplier : 1;
+}
+
+function formatSec(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function feed() {
+  const now = Date.now();
+  if (now - lastFeedTime < gameConfig.feedCooldownSec * 1000) return;
+
+  lastFeedTime = now;
+  buffEndTime = now + gameConfig.feedBuffDurationSec * 1000;
+  spawnFoodPellets();
+  Sound.place();
+  updateFeedUi();
+}
+
+function spawnFoodPellets() {
+  for (let i = 0; i < 8; i++) {
+    const pellet = document.createElement("div");
+    pellet.className = "food-pellet";
+    pellet.style.left = `${10 + Math.random() * 80}%`;
+    pellet.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
+    pellet.style.setProperty("--fall", `${tank.clientHeight * (0.5 + Math.random() * 0.4)}px`);
+    tank.appendChild(pellet);
+    pellet.addEventListener("animationend", () => pellet.remove());
+  }
+}
+
+function updateFeedUi() {
+  const now = Date.now();
+
+  if (now < buffEndTime) {
+    buffIndicator.hidden = false;
+    buffRemaining.textContent = formatSec(Math.ceil((buffEndTime - now) / 1000));
+  } else {
+    buffIndicator.hidden = true;
+  }
+
+  const cooldownLeft = gameConfig.feedCooldownSec * 1000 - (now - lastFeedTime);
+  if (cooldownLeft > 0) {
+    feedBtn.disabled = true;
+    feedBtn.textContent = `🍤 ${formatSec(Math.ceil(cooldownLeft / 1000))}`;
+  } else {
+    feedBtn.disabled = false;
+    feedBtn.textContent = "🍤 餌やり";
+  }
+}
+
+feedBtn.addEventListener("click", feed);
+setInterval(updateFeedUi, 1000);
 
 // --- セーブ/ロード(F10。4.2のlocalStorage案に準拠) ---
 

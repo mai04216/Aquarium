@@ -113,6 +113,39 @@ body {
   cursor: pointer;
 }
 
+.buff-indicator {
+  color: #ffd447;
+  font-weight: bold;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+
+.food-pellet {
+  position: absolute;
+  top: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c98a3c;
+  pointer-events: none;
+  z-index: 3;
+  animation-name: food-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes food-fall {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(var(--fall));
+    opacity: 0.2;
+  }
+}
+
 .balance {
   color: #fff;
   font-size: 1.4rem;

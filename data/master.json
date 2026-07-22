@@ -1,6 +1,9 @@
 {
   "config": {
-    "offlineCapHours": 8
+    "offlineCapHours": 8,
+    "feedBuffMultiplier": 1.5,
+    "feedBuffDurationSec": 600,
+    "feedCooldownSec": 1800
   },
   "items": [
     { "id": "fish_medaka", "name": "メダカ", "category": "fish", "rarity": "ノーマル", "price": 80, "intervalSec": 30, "amount": 4, "image": "assets/fish_medaka.png" },
