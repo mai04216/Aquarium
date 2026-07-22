@@ -7,8 +7,12 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="hud">
+    <div class="balance" id="balance">🪙 <span id="balance-value">0</span></div>
+  </div>
+
   <div class="tank" id="tank">
-    <div class="fish" id="fish-1">
+    <div class="fish" id="fish-1" data-interval-sec="30" data-amount="5">
       <div class="fish-shape"></div>
     </div>
   </div>
