@@ -261,6 +261,21 @@ body {
   filter: drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 6px #ffd447);
 }
 
+.decoration {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: contain;
+  image-rendering: pixelated;
+  cursor: pointer;
+}
+
+.decoration.selected {
+  filter: drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 6px #ffd447);
+}
+
 .fish-action-panel {
   position: absolute;
   top: 10px;
