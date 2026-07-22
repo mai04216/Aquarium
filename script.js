@@ -1,5 +1,4 @@
 const tank = document.getElementById("tank");
-const fish = document.getElementById("fish-1");
 const balanceValue = document.getElementById("balance-value");
 
 // --- 商品マスタ(F08。ノーマル/レア/スーパーレア各5種) ---
@@ -31,8 +30,37 @@ function findItem(itemId) {
   return itemMaster.find((i) => i.id === itemId);
 }
 
-const MAX_FISH = 10; // 配置上限(2.5節の例に準拠)
-const MAX_DECORATIONS = 10; // 海藻・岩の配置上限
+// --- 水槽マスタ(TankMaster。F11) ---
+
+const tankMaster = [
+  { id: "tank_basic", name: "ベーシック水槽", price: 0, bgClass: "tank-bg-basic", fishMax: 10, decoMax: 10 },
+  { id: "tank_wide", name: "ワイド水槽", price: 2000, bgClass: "tank-bg-sunset", fishMax: 15, decoMax: 15 },
+  { id: "tank_deep", name: "ディープ水槽", price: 5000, bgClass: "tank-bg-deep", fishMax: 20, decoMax: 20 },
+];
+
+const DEFAULT_TANK_ID = "tank_basic";
+
+// 水槽状態(F11)。coinFish / placedDecorations はアクティブ水槽のライブ表現、
+// 非アクティブ水槽は tankData にシリアライズして保持する。
+let activeTankId = DEFAULT_TANK_ID;
+let ownedTankIds = [DEFAULT_TANK_ID];
+let tankData = {}; // { [tankId]: { placements: [...], decorations: [...] } }
+
+function findTank(tankId) {
+  return tankMaster.find((t) => t.id === tankId);
+}
+
+function getActiveTank() {
+  return findTank(activeTankId) || findTank(DEFAULT_TANK_ID);
+}
+
+function getFishMax() {
+  return getActiveTank().fishMax;
+}
+
+function getDecoMax() {
+  return getActiveTank().decoMax;
+}
 
 function setupFishVisual(el, item, topPercentOverride) {
   const swimDuration = 9 + Math.random() * 6; // 9〜15秒
@@ -89,9 +117,6 @@ function addDecorationToTank(item, leftPercentOverride, bottomPercentOverride) {
   placedDecorations.push({ element: el, bubbleSource: Boolean(item.bubbleSource) });
 }
 
-const startingItem = findItem(fish.dataset.itemId);
-setupFishVisual(fish, startingItem);
-
 let coins = 0;
 
 function addCoins(amount) {
@@ -115,16 +140,8 @@ function spawnCoinPopup(sourceEl, amount) {
   popup.addEventListener("animationend", () => popup.remove());
 }
 
-const coinFish = [
-  {
-    element: fish,
-    intervalSec: startingItem.intervalSec,
-    amount: startingItem.amount,
-    lastCoinTime: performance.now(),
-  },
-];
-
-let placedDecorations = []; // [{ element }]
+const coinFish = []; // アクティブ水槽の魚 [{ element, intervalSec, amount, lastCoinTime }]
+let placedDecorations = []; // アクティブ水槽の装飾 [{ element, bubbleSource }]
 
 function tick(now) {
   for (const f of coinFish) {
@@ -174,6 +191,22 @@ function renderShop() {
     shopList.appendChild(li);
   });
 
+  tankMaster
+    .filter((t) => t.price > 0)
+    .forEach((t) => {
+      const li = document.createElement("li");
+      li.className = "shop-item";
+      li.innerHTML = `
+        <div class="shop-item-swatch ${t.bgClass}"></div>
+        <div class="shop-item-info">
+          <div class="shop-item-name">${t.name}(水槽)</div>
+          <div class="shop-item-desc">魚${t.fishMax}匹・装飾${t.decoMax}個まで配置可</div>
+        </div>
+        <button data-tank-id="${t.id}">🪙${t.price}</button>
+      `;
+      shopList.appendChild(li);
+    });
+
   updateShopButtons();
 }
 
@@ -182,6 +215,26 @@ function updateShopButtons() {
     const item = itemMaster.find((i) => i.id === btn.dataset.itemId);
     btn.disabled = coins < item.price;
   });
+  shopList.querySelectorAll("button[data-tank-id]").forEach((btn) => {
+    const tankDef = findTank(btn.dataset.tankId);
+    const owned = ownedTankIds.includes(tankDef.id);
+    btn.disabled = owned || coins < tankDef.price;
+    btn.textContent = owned ? "所持済み" : `🪙${tankDef.price}`;
+  });
+}
+
+function purchaseTank(tankId) {
+  const tankDef = findTank(tankId);
+  if (!tankDef || ownedTankIds.includes(tankId) || coins < tankDef.price) return;
+
+  coins -= tankDef.price;
+  balanceValue.textContent = coins;
+  ownedTankIds.push(tankId);
+  tankData[tankId] = { placements: [], decorations: [] };
+
+  updateShopButtons();
+  renderTankList();
+  saveState();
 }
 
 function purchaseItem(itemId) {
@@ -204,8 +257,13 @@ function purchaseItem(itemId) {
 }
 
 shopList.addEventListener("click", (event) => {
-  const btn = event.target.closest("button[data-item-id]");
-  if (btn) purchaseItem(btn.dataset.itemId);
+  const itemBtn = event.target.closest("button[data-item-id]");
+  if (itemBtn) {
+    purchaseItem(itemBtn.dataset.itemId);
+    return;
+  }
+  const tankBtn = event.target.closest("button[data-tank-id]");
+  if (tankBtn) purchaseTank(tankBtn.dataset.tankId);
 });
 
 openShopBtn.addEventListener("click", () => {
@@ -228,7 +286,7 @@ const inventoryList = document.getElementById("inventory-list");
 const fishCountInfo = document.getElementById("fish-count-info");
 
 function renderInventory() {
-  fishCountInfo.textContent = `配置中の魚: ${coinFish.length} / ${MAX_FISH}　配置中の装飾: ${placedDecorations.length} / ${MAX_DECORATIONS}`;
+  fishCountInfo.textContent = `配置中の魚: ${coinFish.length} / ${getFishMax()}　配置中の装飾: ${placedDecorations.length} / ${getDecoMax()}`;
   inventoryList.innerHTML = "";
 
   if (inventory.length === 0) {
@@ -243,8 +301,8 @@ function renderInventory() {
     const item = findItem(itemTypeId);
     const isFull =
       item.category === "fish"
-        ? coinFish.length >= MAX_FISH
-        : placedDecorations.length >= MAX_DECORATIONS;
+        ? coinFish.length >= getFishMax()
+        : placedDecorations.length >= getDecoMax();
     const desc =
       item.category === "fish"
         ? `${item.intervalSec}秒ごとに${item.amount}コイン生成`
@@ -264,7 +322,7 @@ function renderInventory() {
 }
 
 function placeFish(itemId) {
-  if (coinFish.length >= MAX_FISH) return;
+  if (coinFish.length >= getFishMax()) return;
 
   const entry = inventory.find((i) => i.itemTypeId === itemId);
   if (!entry || entry.count <= 0) return;
@@ -280,7 +338,7 @@ function placeFish(itemId) {
 }
 
 function placeDecoration(itemId) {
-  if (placedDecorations.length >= MAX_DECORATIONS) return;
+  if (placedDecorations.length >= getDecoMax()) return;
 
   const entry = inventory.find((i) => i.itemTypeId === itemId);
   if (!entry || entry.count <= 0) return;
@@ -402,16 +460,10 @@ fishActionRemoveBtn.addEventListener("click", () => {
 
 fishActionCancelBtn.addEventListener("click", deselectItem);
 
-// --- セーブ/ロード(F10。4.2のlocalStorage案に準拠) ---
+// --- 水槽切り替え(F11 S02/S01) ---
 
-const SAVE_KEY = "myaquarium_save";
-const SAVE_VERSION = 1;
-
-function serializeState() {
+function serializeActiveTank() {
   return {
-    version: SAVE_VERSION,
-    coins,
-    inventory,
     placements: coinFish.map((f) => ({
       itemTypeId: f.element.dataset.itemId,
       topPercent: parseFloat(f.element.style.top) || 50,
@@ -421,6 +473,103 @@ function serializeState() {
       leftPercent: parseFloat(d.element.style.left) || 50,
       bottomPercent: parseFloat(d.element.style.bottom) || 5,
     })),
+  };
+}
+
+function clearTankDom() {
+  coinFish.forEach((f) => f.element.remove());
+  coinFish.length = 0;
+  placedDecorations.forEach((d) => d.element.remove());
+  placedDecorations.length = 0;
+}
+
+function buildTankFromData(data) {
+  (data.placements || []).forEach(({ itemTypeId, topPercent }) => {
+    const item = findItem(itemTypeId);
+    if (item) addFishToTank(item, topPercent);
+  });
+  (data.decorations || []).forEach(({ itemTypeId, leftPercent, bottomPercent }) => {
+    const item = findItem(itemTypeId);
+    if (item) addDecorationToTank(item, leftPercent, bottomPercent);
+  });
+}
+
+function applyTankBackground() {
+  tankMaster.forEach((t) => tank.classList.remove(t.bgClass));
+  tank.classList.add(getActiveTank().bgClass);
+}
+
+// アクティブ水槽を tankData に退避し、対象水槽をライブ表示へ切り替える
+function switchTank(tankId) {
+  if (!ownedTankIds.includes(tankId)) return;
+
+  deselectItem();
+  tankData[activeTankId] = serializeActiveTank();
+  clearTankDom();
+
+  activeTankId = tankId;
+  applyTankBackground();
+  buildTankFromData(tankData[tankId] || { placements: [], decorations: [] });
+
+  tankModal.hidden = true;
+  renderInventory();
+  renderTankList();
+  saveState();
+}
+
+const openTankBtn = document.getElementById("open-tank");
+const closeTankBtn = document.getElementById("close-tank");
+const tankModal = document.getElementById("tank-modal");
+const tankList = document.getElementById("tank-list");
+
+function renderTankList() {
+  tankList.innerHTML = "";
+  ownedTankIds.forEach((tankId) => {
+    const tankDef = findTank(tankId);
+    const isActive = tankId === activeTankId;
+    const li = document.createElement("li");
+    li.className = "shop-item";
+    li.innerHTML = `
+      <div class="shop-item-swatch ${tankDef.bgClass}"></div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">${tankDef.name}</div>
+        <div class="shop-item-desc">魚${tankDef.fishMax}匹・装飾${tankDef.decoMax}個まで</div>
+      </div>
+      <button data-switch-tank="${tankId}" ${isActive ? "disabled" : ""}>${isActive ? "表示中" : "切り替え"}</button>
+    `;
+    tankList.appendChild(li);
+  });
+}
+
+tankList.addEventListener("click", (event) => {
+  const btn = event.target.closest("button[data-switch-tank]");
+  if (btn) switchTank(btn.dataset.switchTank);
+});
+
+openTankBtn.addEventListener("click", () => {
+  tankModal.hidden = false;
+  renderTankList();
+});
+
+closeTankBtn.addEventListener("click", () => {
+  tankModal.hidden = true;
+});
+
+// --- セーブ/ロード(F10。4.2のlocalStorage案に準拠) ---
+
+const SAVE_KEY = "myaquarium_save";
+const SAVE_VERSION = 2;
+
+function serializeState() {
+  // アクティブ水槽の現在のライブ状態を tankData に反映してから保存する
+  tankData[activeTankId] = serializeActiveTank();
+  return {
+    version: SAVE_VERSION,
+    coins,
+    inventory,
+    activeTankId,
+    ownedTankIds,
+    tanks: tankData,
     lastSavedAt: Date.now(),
   };
 }
@@ -429,47 +578,85 @@ function saveState() {
   localStorage.setItem(SAVE_KEY, JSON.stringify(serializeState()));
 }
 
+// v1(単一水槽)を v2(複数水槽)へマイグレーションする
+function migrate(data) {
+  if (data.version === 2) return data;
+  if (data.version === 1) {
+    return {
+      version: 2,
+      coins: data.coins,
+      inventory: data.inventory,
+      activeTankId: DEFAULT_TANK_ID,
+      ownedTankIds: [DEFAULT_TANK_ID],
+      tanks: {
+        [DEFAULT_TANK_ID]: {
+          placements: data.placements || [],
+          decorations: data.decorations || [],
+        },
+      },
+    };
+  }
+  return null;
+}
+
 function loadState() {
   const raw = localStorage.getItem(SAVE_KEY);
   if (!raw) return null;
 
   try {
-    const data = JSON.parse(raw);
-    return data.version === SAVE_VERSION ? data : null;
+    return migrate(JSON.parse(raw));
   } catch {
     return null;
   }
 }
 
 function restoreState(data) {
-  coins = data.coins;
+  coins = data.coins || 0;
   balanceValue.textContent = coins;
   inventory = Array.isArray(data.inventory) ? data.inventory : [];
 
-  coinFish.forEach((f) => f.element.remove());
-  coinFish.length = 0;
-  placedDecorations.forEach((d) => d.element.remove());
-  placedDecorations.length = 0;
-
-  (data.placements || []).forEach(({ itemTypeId, topPercent }) => {
-    const item = findItem(itemTypeId);
-    if (item) addFishToTank(item, topPercent);
+  ownedTankIds =
+    Array.isArray(data.ownedTankIds) && data.ownedTankIds.length
+      ? data.ownedTankIds
+      : [DEFAULT_TANK_ID];
+  tankData = data.tanks || {};
+  ownedTankIds.forEach((id) => {
+    if (!tankData[id]) tankData[id] = { placements: [], decorations: [] };
   });
 
-  (data.decorations || []).forEach(({ itemTypeId, leftPercent, bottomPercent }) => {
-    const item = findItem(itemTypeId);
-    if (item) addDecorationToTank(item, leftPercent, bottomPercent);
-  });
+  activeTankId = ownedTankIds.includes(data.activeTankId)
+    ? data.activeTankId
+    : ownedTankIds[0];
+
+  clearTankDom();
+  applyTankBackground();
+  buildTankFromData(tankData[activeTankId]);
 
   updateShopButtons();
   renderInventory();
 }
 
+function initDefaultState() {
+  ownedTankIds = [DEFAULT_TANK_ID];
+  activeTankId = DEFAULT_TANK_ID;
+  tankData = {
+    [DEFAULT_TANK_ID]: {
+      placements: [{ itemTypeId: "fish_goldfish", topPercent: 45 }],
+      decorations: [],
+    },
+  };
+  applyTankBackground();
+  buildTankFromData(tankData[DEFAULT_TANK_ID]);
+  renderInventory();
+  saveState();
+}
+
 const savedState = loadState();
 if (savedState) {
   restoreState(savedState);
+  saveState(); // マイグレーション結果(v2)を即座に永続化
 } else {
-  saveState();
+  initDefaultState();
 }
 
 setInterval(saveState, 30000);

@@ -36,14 +36,20 @@ body {
   overflow: hidden;
   border-radius: 12px;
   border: 6px solid #2b2b2b;
-  background: linear-gradient(
-    to bottom,
-    #bfe9f7 0%,
-    #4fb3d9 15%,
-    #1a7fb3 55%,
-    #0d4f75 100%
-  );
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* 水槽ごとの背景(F11) */
+.tank-bg-basic {
+  background: linear-gradient(to bottom, #bfe9f7 0%, #4fb3d9 15%, #1a7fb3 55%, #0d4f75 100%);
+}
+
+.tank-bg-sunset {
+  background: linear-gradient(to bottom, #ffe3c2 0%, #ffb27a 18%, #e8825f 55%, #8f3f5a 100%);
+}
+
+.tank-bg-deep {
+  background: linear-gradient(to bottom, #7fd9c8 0%, #2f9e8f 18%, #145f63 55%, #06232e 100%);
 }
 
 .bubble-layer {
@@ -242,6 +248,12 @@ body {
   object-fit: contain;
   image-rendering: pixelated;
   flex-shrink: 0;
+}
+
+/* 水槽スウォッチ(div 背景) */
+div.shop-item-swatch {
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .shop-item-info {
