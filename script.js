@@ -5,21 +5,25 @@ const balanceValue = document.getElementById("balance-value");
 // --- 商品マスタ(F08。ノーマル/レア/スーパーレア各5種) ---
 
 const itemMaster = [
-  { id: "fish_medaka", name: "メダカ", rarity: "ノーマル", price: 80, intervalSec: 30, amount: 4, image: "assets/fish_medaka.png" },
-  { id: "fish_goldfish", name: "金魚", rarity: "ノーマル", price: 100, intervalSec: 30, amount: 5, image: "assets/fish_goldfish.png" },
-  { id: "fish_neon_tetra", name: "ネオンテトラ", rarity: "ノーマル", price: 120, intervalSec: 25, amount: 5, image: "assets/fish_neon_tetra.png" },
-  { id: "fish_platy", name: "プラティ", rarity: "ノーマル", price: 130, intervalSec: 28, amount: 5, image: "assets/fish_platy.png" },
-  { id: "fish_guppy", name: "グッピー", rarity: "ノーマル", price: 150, intervalSec: 30, amount: 6, image: "assets/fish_guppy.png" },
-  { id: "fish_doctorfish", name: "ドクターフィッシュ", rarity: "レア", price: 400, intervalSec: 30, amount: 15, image: "assets/fish_doctorfish.png" },
-  { id: "fish_betta", name: "ベタ", rarity: "レア", price: 600, intervalSec: 28, amount: 22, image: "assets/fish_betta.png" },
-  { id: "fish_discus", name: "ディスカス", rarity: "レア", price: 700, intervalSec: 25, amount: 25, image: "assets/fish_discus.png" },
-  { id: "fish_angelfish", name: "エンゼルフィッシュ", rarity: "レア", price: 850, intervalSec: 24, amount: 28, image: "assets/fish_angelfish.png" },
-  { id: "fish_axolotl", name: "ウーパールーパー", rarity: "レア", price: 1000, intervalSec: 20, amount: 30, image: "assets/fish_axolotl.png" },
-  { id: "fish_arowana", name: "アロワナ", rarity: "スーパーレア", price: 1800, intervalSec: 20, amount: 45, image: "assets/fish_arowana.png" },
-  { id: "fish_pirarucu", name: "ピラルクー", rarity: "スーパーレア", price: 2500, intervalSec: 18, amount: 60, image: "assets/fish_pirarucu.png" },
-  { id: "fish_electric_eel", name: "デンキウナギ", rarity: "スーパーレア", price: 3000, intervalSec: 16, amount: 65, image: "assets/fish_electric_eel.png" },
-  { id: "fish_giant_salamander", name: "オオサンショウウオ", rarity: "スーパーレア", price: 3500, intervalSec: 15, amount: 70, image: "assets/fish_giant_salamander.png" },
-  { id: "fish_oarfish", name: "リュウグウノツカイ", rarity: "スーパーレア", price: 5000, intervalSec: 12, amount: 100, image: "assets/fish_oarfish.png" },
+  { id: "fish_medaka", name: "メダカ", category: "fish", rarity: "ノーマル", price: 80, intervalSec: 30, amount: 4, image: "assets/fish_medaka.png" },
+  { id: "fish_goldfish", name: "金魚", category: "fish", rarity: "ノーマル", price: 100, intervalSec: 30, amount: 5, image: "assets/fish_goldfish.png" },
+  { id: "fish_neon_tetra", name: "ネオンテトラ", category: "fish", rarity: "ノーマル", price: 120, intervalSec: 25, amount: 5, image: "assets/fish_neon_tetra.png" },
+  { id: "fish_platy", name: "プラティ", category: "fish", rarity: "ノーマル", price: 130, intervalSec: 28, amount: 5, image: "assets/fish_platy.png" },
+  { id: "fish_guppy", name: "グッピー", category: "fish", rarity: "ノーマル", price: 150, intervalSec: 30, amount: 6, image: "assets/fish_guppy.png" },
+  { id: "fish_doctorfish", name: "ドクターフィッシュ", category: "fish", rarity: "レア", price: 400, intervalSec: 30, amount: 15, image: "assets/fish_doctorfish.png" },
+  { id: "fish_betta", name: "ベタ", category: "fish", rarity: "レア", price: 600, intervalSec: 28, amount: 22, image: "assets/fish_betta.png" },
+  { id: "fish_discus", name: "ディスカス", category: "fish", rarity: "レア", price: 700, intervalSec: 25, amount: 25, image: "assets/fish_discus.png" },
+  { id: "fish_angelfish", name: "エンゼルフィッシュ", category: "fish", rarity: "レア", price: 850, intervalSec: 24, amount: 28, image: "assets/fish_angelfish.png" },
+  { id: "fish_axolotl", name: "ウーパールーパー", category: "fish", rarity: "レア", price: 1000, intervalSec: 20, amount: 30, image: "assets/fish_axolotl.png" },
+  { id: "fish_arowana", name: "アロワナ", category: "fish", rarity: "スーパーレア", price: 1800, intervalSec: 20, amount: 45, image: "assets/fish_arowana.png" },
+  { id: "fish_pirarucu", name: "ピラルクー", category: "fish", rarity: "スーパーレア", price: 2500, intervalSec: 18, amount: 60, image: "assets/fish_pirarucu.png" },
+  { id: "fish_electric_eel", name: "デンキウナギ", category: "fish", rarity: "スーパーレア", price: 3000, intervalSec: 16, amount: 65, image: "assets/fish_electric_eel.png" },
+  { id: "fish_giant_salamander", name: "オオサンショウウオ", category: "fish", rarity: "スーパーレア", price: 3500, intervalSec: 15, amount: 70, image: "assets/fish_giant_salamander.png" },
+  { id: "fish_oarfish", name: "リュウグウノツカイ", category: "fish", rarity: "スーパーレア", price: 5000, intervalSec: 12, amount: 100, image: "assets/fish_oarfish.png" },
+  { id: "deco_seaweed_green", name: "海藻(緑)", category: "decoration", rarity: "装飾", price: 50, image: "assets/deco_seaweed_green.png" },
+  { id: "deco_seaweed_red", name: "海藻(赤)", category: "decoration", rarity: "装飾", price: 60, image: "assets/deco_seaweed_red.png" },
+  { id: "deco_rock_gray", name: "岩(グレー)", category: "decoration", rarity: "装飾", price: 40, image: "assets/deco_rock_gray.png" },
+  { id: "deco_rock_brown", name: "岩(ブラウン)", category: "decoration", rarity: "装飾", price: 45, image: "assets/deco_rock_brown.png" },
 ];
 
 function findItem(itemId) {
@@ -27,6 +31,7 @@ function findItem(itemId) {
 }
 
 const MAX_FISH = 10; // 配置上限(2.5節の例に準拠)
+const MAX_DECORATIONS = 10; // 海藻・岩の配置上限
 
 function setupFishVisual(el, item, topPercentOverride) {
   const swimDuration = 9 + Math.random() * 6; // 9〜15秒
@@ -44,7 +49,7 @@ function setupFishVisual(el, item, topPercentOverride) {
 
 function addFishToTank(item, topPercentOverride) {
   const el = document.createElement("div");
-  el.className = "fish";
+  el.className = "fish tank-item";
   el.dataset.itemId = item.id;
 
   const shape = document.createElement("div");
@@ -60,6 +65,21 @@ function addFishToTank(item, topPercentOverride) {
     amount: item.amount,
     lastCoinTime: performance.now(),
   });
+}
+
+function addDecorationToTank(item, leftPercentOverride, bottomPercentOverride) {
+  const el = document.createElement("div");
+  el.className = "decoration tank-item";
+  el.dataset.itemId = item.id;
+  el.style.backgroundImage = `url(${item.image})`;
+
+  const leftPercent = leftPercentOverride !== undefined ? leftPercentOverride : 5 + Math.random() * 85;
+  const bottomPercent = bottomPercentOverride !== undefined ? bottomPercentOverride : 2 + Math.random() * 5;
+  el.style.left = `${leftPercent}%`;
+  el.style.bottom = `${bottomPercent}%`;
+
+  tank.appendChild(el);
+  placedDecorations.push({ element: el });
 }
 
 const startingItem = findItem(fish.dataset.itemId);
@@ -97,6 +117,8 @@ const coinFish = [
   },
 ];
 
+let placedDecorations = []; // [{ element }]
+
 function tick(now) {
   for (const f of coinFish) {
     const intervalMs = f.intervalSec * 1000;
@@ -130,11 +152,15 @@ function renderShop() {
   itemMaster.forEach((item) => {
     const li = document.createElement("li");
     li.className = "shop-item";
+    const desc =
+      item.category === "fish"
+        ? `${item.intervalSec}秒ごとに${item.amount}コイン生成`
+        : "水槽の装飾品(コイン生成なし)";
     li.innerHTML = `
       <img class="shop-item-swatch" src="${item.image}" alt="${item.name}" />
       <div class="shop-item-info">
         <div class="shop-item-name">${item.name}(${item.rarity})</div>
-        <div class="shop-item-desc">${item.intervalSec}秒ごとに${item.amount}コイン生成</div>
+        <div class="shop-item-desc">${desc}</div>
       </div>
       <button data-item-id="${item.id}">🪙${item.price}</button>
     `;
@@ -195,7 +221,7 @@ const inventoryList = document.getElementById("inventory-list");
 const fishCountInfo = document.getElementById("fish-count-info");
 
 function renderInventory() {
-  fishCountInfo.textContent = `配置中の魚: ${coinFish.length} / ${MAX_FISH}`;
+  fishCountInfo.textContent = `配置中の魚: ${coinFish.length} / ${MAX_FISH}　配置中の装飾: ${placedDecorations.length} / ${MAX_DECORATIONS}`;
   inventoryList.innerHTML = "";
 
   if (inventory.length === 0) {
@@ -206,17 +232,23 @@ function renderInventory() {
     return;
   }
 
-  const isFull = coinFish.length >= MAX_FISH;
-
   inventory.forEach(({ itemTypeId, count }) => {
     const item = findItem(itemTypeId);
+    const isFull =
+      item.category === "fish"
+        ? coinFish.length >= MAX_FISH
+        : placedDecorations.length >= MAX_DECORATIONS;
+    const desc =
+      item.category === "fish"
+        ? `${item.intervalSec}秒ごとに${item.amount}コイン生成`
+        : "水槽の装飾品(コイン生成なし)";
     const li = document.createElement("li");
     li.className = "shop-item";
     li.innerHTML = `
       <img class="shop-item-swatch" src="${item.image}" alt="${item.name}" />
       <div class="shop-item-info">
         <div class="shop-item-name">${item.name} × ${count}</div>
-        <div class="shop-item-desc">${item.intervalSec}秒ごとに${item.amount}コイン生成</div>
+        <div class="shop-item-desc">${desc}</div>
       </div>
       <button data-item-id="${item.id}" ${isFull ? "disabled" : ""}>配置する</button>
     `;
@@ -240,9 +272,32 @@ function placeFish(itemId) {
   saveState();
 }
 
+function placeDecoration(itemId) {
+  if (placedDecorations.length >= MAX_DECORATIONS) return;
+
+  const entry = inventory.find((i) => i.itemTypeId === itemId);
+  if (!entry || entry.count <= 0) return;
+
+  entry.count -= 1;
+  if (entry.count === 0) {
+    inventory = inventory.filter((i) => i.itemTypeId !== itemId);
+  }
+
+  addDecorationToTank(findItem(itemId));
+  renderInventory();
+  saveState();
+}
+
 inventoryList.addEventListener("click", (event) => {
   const btn = event.target.closest("button[data-item-id]");
-  if (btn) placeFish(btn.dataset.itemId);
+  if (!btn) return;
+
+  const item = findItem(btn.dataset.itemId);
+  if (item.category === "fish") {
+    placeFish(item.id);
+  } else {
+    placeDecoration(item.id);
+  }
 });
 
 openInventoryBtn.addEventListener("click", () => {
@@ -258,33 +313,47 @@ closeInventoryBtn.addEventListener("click", () => {
 
 const fishActionPanel = document.getElementById("fish-action-panel");
 const fishActionName = document.getElementById("fish-action-name");
+const fishActionHint = document.getElementById("fish-action-hint");
 const fishActionRemoveBtn = document.getElementById("fish-action-remove");
 const fishActionCancelBtn = document.getElementById("fish-action-cancel");
 
-let selectedFishEl = null;
+let selectedItemEl = null;
 
-function selectFish(el) {
-  if (selectedFishEl === el) {
-    deselectFish();
+function selectItem(el) {
+  if (selectedItemEl === el) {
+    deselectItem();
     return;
   }
-  deselectFish();
-  selectedFishEl = el;
+  deselectItem();
+  selectedItemEl = el;
   el.classList.add("selected");
-  fishActionName.textContent = `選択中: ${findItem(el.dataset.itemId).name}`;
+
+  const item = findItem(el.dataset.itemId);
+  fishActionName.textContent = `選択中: ${item.name}`;
+  fishActionHint.textContent =
+    item.category === "fish"
+      ? "水槽内をクリックして位置を移動"
+      : "海藻・岩は移動できません(撤去のみ)";
   fishActionPanel.hidden = false;
 }
 
-function deselectFish() {
-  if (selectedFishEl) selectedFishEl.classList.remove("selected");
-  selectedFishEl = null;
+function deselectItem() {
+  if (selectedItemEl) selectedItemEl.classList.remove("selected");
+  selectedItemEl = null;
   fishActionPanel.hidden = true;
 }
 
-function removeFishFromTank(el) {
+function removeItemFromTank(el) {
   const itemId = el.dataset.itemId;
-  const idx = coinFish.findIndex((f) => f.element === el);
-  if (idx !== -1) coinFish.splice(idx, 1);
+  const item = findItem(itemId);
+
+  if (item.category === "fish") {
+    const idx = coinFish.findIndex((f) => f.element === el);
+    if (idx !== -1) coinFish.splice(idx, 1);
+  } else {
+    const idx = placedDecorations.findIndex((d) => d.element === el);
+    if (idx !== -1) placedDecorations.splice(idx, 1);
+  }
   el.remove();
 
   const existing = inventory.find((i) => i.itemTypeId === itemId);
@@ -299,29 +368,32 @@ function removeFishFromTank(el) {
 }
 
 tank.addEventListener("click", (event) => {
-  const fishEl = event.target.closest(".fish");
-  if (fishEl) {
-    selectFish(fishEl);
+  const itemEl = event.target.closest(".tank-item");
+  if (itemEl) {
+    selectItem(itemEl);
     return;
   }
 
-  if (selectedFishEl && event.target === tank) {
-    const rect = tank.getBoundingClientRect();
-    const relY = (event.clientY - rect.top) / rect.height;
-    const topPercent = Math.min(85, Math.max(5, relY * 100));
-    selectedFishEl.style.top = `${topPercent}%`;
-    deselectFish();
-    saveState();
+  if (selectedItemEl && event.target === tank) {
+    const item = findItem(selectedItemEl.dataset.itemId);
+    if (item.category === "fish") {
+      const rect = tank.getBoundingClientRect();
+      const relY = (event.clientY - rect.top) / rect.height;
+      const topPercent = Math.min(85, Math.max(5, relY * 100));
+      selectedItemEl.style.top = `${topPercent}%`;
+      deselectItem();
+      saveState();
+    }
   }
 });
 
 fishActionRemoveBtn.addEventListener("click", () => {
-  if (!selectedFishEl) return;
-  removeFishFromTank(selectedFishEl);
-  deselectFish();
+  if (!selectedItemEl) return;
+  removeItemFromTank(selectedItemEl);
+  deselectItem();
 });
 
-fishActionCancelBtn.addEventListener("click", deselectFish);
+fishActionCancelBtn.addEventListener("click", deselectItem);
 
 // --- セーブ/ロード(F10。4.2のlocalStorage案に準拠) ---
 
@@ -336,6 +408,11 @@ function serializeState() {
     placements: coinFish.map((f) => ({
       itemTypeId: f.element.dataset.itemId,
       topPercent: parseFloat(f.element.style.top) || 50,
+    })),
+    decorations: placedDecorations.map((d) => ({
+      itemTypeId: d.element.dataset.itemId,
+      leftPercent: parseFloat(d.element.style.left) || 50,
+      bottomPercent: parseFloat(d.element.style.bottom) || 5,
     })),
     lastSavedAt: Date.now(),
   };
@@ -364,10 +441,17 @@ function restoreState(data) {
 
   coinFish.forEach((f) => f.element.remove());
   coinFish.length = 0;
+  placedDecorations.forEach((d) => d.element.remove());
+  placedDecorations.length = 0;
 
   (data.placements || []).forEach(({ itemTypeId, topPercent }) => {
     const item = findItem(itemTypeId);
     if (item) addFishToTank(item, topPercent);
+  });
+
+  (data.decorations || []).forEach(({ itemTypeId, leftPercent, bottomPercent }) => {
+    const item = findItem(itemTypeId);
+    if (item) addDecorationToTank(item, leftPercent, bottomPercent);
   });
 
   updateShopButtons();
