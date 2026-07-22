@@ -152,6 +152,7 @@ function tick(now) {
       const times = Math.floor(elapsed / intervalMs);
       addCoins(times * f.amount);
       spawnCoinPopup(f.element, times * f.amount);
+      Sound.coin();
       f.lastCoinTime += times * intervalMs;
     }
   }
@@ -235,6 +236,7 @@ function purchaseTank(tankId) {
   updateShopButtons();
   renderTankList();
   saveState();
+  Sound.purchase();
 }
 
 function purchaseItem(itemId) {
@@ -254,6 +256,7 @@ function purchaseItem(itemId) {
   updateShopButtons();
   renderInventory();
   saveState();
+  Sound.purchase();
 }
 
 shopList.addEventListener("click", (event) => {
@@ -335,6 +338,7 @@ function placeFish(itemId) {
   addFishToTank(findItem(itemId));
   renderInventory();
   saveState();
+  Sound.place();
 }
 
 function placeDecoration(itemId) {
@@ -351,6 +355,7 @@ function placeDecoration(itemId) {
   addDecorationToTank(findItem(itemId));
   renderInventory();
   saveState();
+  Sound.place();
 }
 
 inventoryList.addEventListener("click", (event) => {
@@ -515,6 +520,7 @@ function switchTank(tankId) {
   renderInventory();
   renderTankList();
   saveState();
+  Sound.ui();
 }
 
 const openTankBtn = document.getElementById("open-tank");
@@ -554,6 +560,34 @@ openTankBtn.addEventListener("click", () => {
 closeTankBtn.addEventListener("click", () => {
   tankModal.hidden = true;
 });
+
+// --- 設定(S04。サウンドON/OFF) ---
+
+const openSettingsBtn = document.getElementById("open-settings");
+const closeSettingsBtn = document.getElementById("close-settings");
+const settingsModal = document.getElementById("settings-modal");
+const toggleBgm = document.getElementById("toggle-bgm");
+const toggleSfx = document.getElementById("toggle-sfx");
+
+function syncSoundToggles() {
+  const s = Sound.getSettings();
+  toggleBgm.checked = s.bgm;
+  toggleSfx.checked = s.sfx;
+}
+
+openSettingsBtn.addEventListener("click", () => {
+  syncSoundToggles();
+  settingsModal.hidden = false;
+});
+
+closeSettingsBtn.addEventListener("click", () => {
+  settingsModal.hidden = true;
+});
+
+toggleBgm.addEventListener("change", () => Sound.setBgm(toggleBgm.checked));
+toggleSfx.addEventListener("change", () => Sound.setSfx(toggleSfx.checked));
+
+Sound.unlockOnFirstGesture();
 
 // --- セーブ/ロード(F10。4.2のlocalStorage案に準拠) ---
 
