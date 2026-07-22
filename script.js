@@ -24,6 +24,7 @@ const itemMaster = [
   { id: "deco_seaweed_red", name: "海藻(赤)", category: "decoration", rarity: "装飾", price: 60, image: "assets/deco_seaweed_red.png", sway: true },
   { id: "deco_rock_gray", name: "岩(グレー)", category: "decoration", rarity: "装飾", price: 40, image: "assets/deco_rock_gray.png" },
   { id: "deco_rock_brown", name: "岩(ブラウン)", category: "decoration", rarity: "装飾", price: 45, image: "assets/deco_rock_brown.png" },
+  { id: "deco_aerator", name: "エアレーション", category: "decoration", rarity: "装飾", price: 120, image: "assets/deco_aerator.png", bubbleSource: true },
 ];
 
 function findItem(itemId) {
@@ -85,7 +86,7 @@ function addDecorationToTank(item, leftPercentOverride, bottomPercentOverride) {
   }
 
   tank.appendChild(el);
-  placedDecorations.push({ element: el });
+  placedDecorations.push({ element: el, bubbleSource: Boolean(item.bubbleSource) });
 }
 
 const startingItem = findItem(fish.dataset.itemId);
@@ -472,3 +473,40 @@ if (savedState) {
 }
 
 setInterval(saveState, 30000);
+
+// --- 泡演出(F12。常時の環境泡 + エアレーションからの泡) ---
+
+const bubbleLayer = document.getElementById("bubble-layer");
+const MAX_BUBBLES = 40; // 描画負荷保護(9章)
+
+function spawnBubble(leftPercent) {
+  if (bubbleLayer.childElementCount >= MAX_BUBBLES) return;
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  const size = 3 + Math.random() * 6;
+  bubble.style.width = `${size}px`;
+  bubble.style.height = `${size}px`;
+  bubble.style.left = `${leftPercent}%`;
+  bubble.style.setProperty("--drift", `${(Math.random() - 0.5) * 30}px`);
+  bubble.style.setProperty("--rise", `${tank.clientHeight}px`);
+  bubble.style.animationDuration = `${3 + Math.random() * 3}s`;
+
+  bubbleLayer.appendChild(bubble);
+  bubble.addEventListener("animationend", () => bubble.remove());
+}
+
+// 常時の控えめな環境泡
+setInterval(() => {
+  if (Math.random() < 0.6) spawnBubble(5 + Math.random() * 90);
+}, 1400);
+
+// エアレーションからの泡(配置位置から多めに立ち上る)
+setInterval(() => {
+  placedDecorations
+    .filter((d) => d.bubbleSource)
+    .forEach((d) => {
+      const leftPercent = parseFloat(d.element.style.left) || 50;
+      spawnBubble(leftPercent + (Math.random() - 0.5) * 4);
+    });
+}, 500);
