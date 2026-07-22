@@ -1,42 +1,15 @@
 const tank = document.getElementById("tank");
 const balanceValue = document.getElementById("balance-value");
 
-// --- 商品マスタ(F08。ノーマル/レア/スーパーレア各5種) ---
+// --- マスタデータ(F08/F11。data/master.json から読み込む。9章) ---
+// 経済バランスの調整は data/master.json の編集のみで行える。
 
-const itemMaster = [
-  { id: "fish_medaka", name: "メダカ", category: "fish", rarity: "ノーマル", price: 80, intervalSec: 30, amount: 4, image: "assets/fish_medaka.png" },
-  { id: "fish_goldfish", name: "金魚", category: "fish", rarity: "ノーマル", price: 100, intervalSec: 30, amount: 5, image: "assets/fish_goldfish.png" },
-  { id: "fish_neon_tetra", name: "ネオンテトラ", category: "fish", rarity: "ノーマル", price: 120, intervalSec: 25, amount: 5, image: "assets/fish_neon_tetra.png" },
-  { id: "fish_platy", name: "プラティ", category: "fish", rarity: "ノーマル", price: 130, intervalSec: 28, amount: 5, image: "assets/fish_platy.png" },
-  { id: "fish_guppy", name: "グッピー", category: "fish", rarity: "ノーマル", price: 150, intervalSec: 30, amount: 6, image: "assets/fish_guppy.png" },
-  { id: "fish_doctorfish", name: "ドクターフィッシュ", category: "fish", rarity: "レア", price: 400, intervalSec: 30, amount: 15, image: "assets/fish_doctorfish.png" },
-  { id: "fish_betta", name: "ベタ", category: "fish", rarity: "レア", price: 600, intervalSec: 28, amount: 22, image: "assets/fish_betta.png" },
-  { id: "fish_discus", name: "ディスカス", category: "fish", rarity: "レア", price: 700, intervalSec: 25, amount: 25, image: "assets/fish_discus.png" },
-  { id: "fish_angelfish", name: "エンゼルフィッシュ", category: "fish", rarity: "レア", price: 850, intervalSec: 24, amount: 28, image: "assets/fish_angelfish.png" },
-  { id: "fish_axolotl", name: "ウーパールーパー", category: "fish", rarity: "レア", price: 1000, intervalSec: 20, amount: 30, image: "assets/fish_axolotl.png" },
-  { id: "fish_arowana", name: "アロワナ", category: "fish", rarity: "スーパーレア", price: 1800, intervalSec: 20, amount: 45, image: "assets/fish_arowana.png" },
-  { id: "fish_pirarucu", name: "ピラルクー", category: "fish", rarity: "スーパーレア", price: 2500, intervalSec: 18, amount: 60, image: "assets/fish_pirarucu.png" },
-  { id: "fish_electric_eel", name: "デンキウナギ", category: "fish", rarity: "スーパーレア", price: 3000, intervalSec: 16, amount: 65, image: "assets/fish_electric_eel.png" },
-  { id: "fish_giant_salamander", name: "オオサンショウウオ", category: "fish", rarity: "スーパーレア", price: 3500, intervalSec: 15, amount: 70, image: "assets/fish_giant_salamander.png" },
-  { id: "fish_oarfish", name: "リュウグウノツカイ", category: "fish", rarity: "スーパーレア", price: 5000, intervalSec: 12, amount: 100, image: "assets/fish_oarfish.png" },
-  { id: "deco_seaweed_green", name: "海藻(緑)", category: "decoration", rarity: "装飾", price: 50, image: "assets/deco_seaweed_green.png", sway: true },
-  { id: "deco_seaweed_red", name: "海藻(赤)", category: "decoration", rarity: "装飾", price: 60, image: "assets/deco_seaweed_red.png", sway: true },
-  { id: "deco_rock_gray", name: "岩(グレー)", category: "decoration", rarity: "装飾", price: 40, image: "assets/deco_rock_gray.png" },
-  { id: "deco_rock_brown", name: "岩(ブラウン)", category: "decoration", rarity: "装飾", price: 45, image: "assets/deco_rock_brown.png" },
-  { id: "deco_aerator", name: "エアレーション", category: "decoration", rarity: "装飾", price: 120, image: "assets/deco_aerator.png", bubbleSource: true },
-];
+let itemMaster = []; // 商品マスタ(魚・装飾)
+let tankMaster = []; // 水槽マスタ
 
 function findItem(itemId) {
   return itemMaster.find((i) => i.id === itemId);
 }
-
-// --- 水槽マスタ(TankMaster。F11) ---
-
-const tankMaster = [
-  { id: "tank_basic", name: "ベーシック水槽", price: 0, bgClass: "tank-bg-basic", fishMax: 10, decoMax: 10 },
-  { id: "tank_wide", name: "ワイド水槽", price: 2000, bgClass: "tank-bg-sunset", fishMax: 15, decoMax: 15 },
-  { id: "tank_deep", name: "ディープ水槽", price: 5000, bgClass: "tank-bg-deep", fishMax: 20, decoMax: 20 },
-];
 
 const DEFAULT_TANK_ID = "tank_basic";
 
@@ -160,8 +133,6 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 
-requestAnimationFrame(tick);
-
 // --- ショップ(F08 S02) ---
 
 let inventory = []; // [{ itemTypeId, count }]
@@ -277,8 +248,6 @@ openShopBtn.addEventListener("click", () => {
 closeShopBtn.addEventListener("click", () => {
   shopModal.hidden = true;
 });
-
-renderShop();
 
 // --- インベントリ+配置(F09 S03、F02) ---
 
@@ -685,15 +654,35 @@ function initDefaultState() {
   saveState();
 }
 
-const savedState = loadState();
-if (savedState) {
-  restoreState(savedState);
-  saveState(); // マイグレーション結果(v2)を即座に永続化
-} else {
-  initDefaultState();
+// マスタデータ読込後にゲームを起動する(データと実装の分離。9章)
+function startGame() {
+  renderShop();
+
+  const savedState = loadState();
+  if (savedState) {
+    restoreState(savedState);
+    saveState(); // マイグレーション結果(v2)を即座に永続化
+  } else {
+    initDefaultState();
+  }
+
+  setInterval(saveState, 30000);
+  requestAnimationFrame(tick);
 }
 
-setInterval(saveState, 30000);
+fetch("data/master.json")
+  .then((res) => res.json())
+  .then((data) => {
+    itemMaster = data.items;
+    tankMaster = data.tanks;
+    startGame();
+  })
+  .catch(() => {
+    document.body.insertAdjacentHTML(
+      "afterbegin",
+      '<p style="color:#fff;padding:12px;background:#a33;">マスタデータ(data/master.json)の読み込みに失敗しました。ローカルサーバー経由で開いてください(例: python3 -m http.server)。</p>'
+    );
+  });
 
 // --- 泡演出(F12。常時の環境泡 + エアレーションからの泡) ---
 
