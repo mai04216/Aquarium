@@ -1,4 +1,7 @@
 {
+  "config": {
+    "offlineCapHours": 8
+  },
   "items": [
     { "id": "fish_medaka", "name": "メダカ", "category": "fish", "rarity": "ノーマル", "price": 80, "intervalSec": 30, "amount": 4, "image": "assets/fish_medaka.png" },
     { "id": "fish_goldfish", "name": "金魚", "category": "fish", "rarity": "ノーマル", "price": 100, "intervalSec": 30, "amount": 5, "image": "assets/fish_goldfish.png" },

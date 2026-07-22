@@ -6,6 +6,7 @@ const balanceValue = document.getElementById("balance-value");
 
 let itemMaster = []; // 商品マスタ(魚・装飾)
 let tankMaster = []; // 水槽マスタ
+let gameConfig = { offlineCapHours: 8 }; // バランス設定(master.jsonで上書き)
 
 function findItem(itemId) {
   return itemMaster.find((i) => i.id === itemId);
@@ -558,6 +559,22 @@ toggleSfx.addEventListener("change", () => Sound.setSfx(toggleSfx.checked));
 
 Sound.unlockOnFirstGesture();
 
+// --- おかえりダイアログ(F13) ---
+
+const welcomeModal = document.getElementById("welcome-modal");
+const welcomeText = document.getElementById("welcome-text");
+const welcomeOkBtn = document.getElementById("welcome-ok");
+
+function showWelcomeBack(earned) {
+  welcomeText.textContent = `${earned.toLocaleString()} コイン貯まりました!`;
+  welcomeModal.hidden = false;
+}
+
+welcomeOkBtn.addEventListener("click", () => {
+  welcomeModal.hidden = true;
+  Sound.ui();
+});
+
 // --- セーブ/ロード(F10。4.2のlocalStorage案に準拠) ---
 
 const SAVE_KEY = "myaquarium_save";
@@ -597,6 +614,7 @@ function migrate(data) {
           decorations: data.decorations || [],
         },
       },
+      lastSavedAt: data.lastSavedAt,
     };
   }
   return null;
@@ -654,6 +672,32 @@ function initDefaultState() {
   saveState();
 }
 
+// 全所持水槽の配置魚から、毎秒のコイン生成レート合計を求める(F13)
+function totalCoinsPerSecond() {
+  let sum = 0;
+  Object.values(tankData).forEach((t) => {
+    (t.placements || []).forEach(({ itemTypeId }) => {
+      const item = findItem(itemTypeId);
+      if (item && item.category === "fish") sum += item.amount / item.intervalSec;
+    });
+  });
+  return sum;
+}
+
+// オフライン収益(F13。2.4)。前回保存からの経過分を上限付きでまとめて付与する
+function grantOfflineEarnings(lastSavedAt) {
+  if (!lastSavedAt) return;
+  const elapsedSec = (Date.now() - lastSavedAt) / 1000;
+  if (elapsedSec <= 0) return;
+
+  const capSec = gameConfig.offlineCapHours * 3600;
+  const earned = Math.floor(Math.min(elapsedSec, capSec) * totalCoinsPerSecond());
+  if (earned <= 0) return;
+
+  addCoins(earned);
+  showWelcomeBack(earned);
+}
+
 // マスタデータ読込後にゲームを起動する(データと実装の分離。9章)
 function startGame() {
   renderShop();
@@ -661,7 +705,8 @@ function startGame() {
   const savedState = loadState();
   if (savedState) {
     restoreState(savedState);
-    saveState(); // マイグレーション結果(v2)を即座に永続化
+    grantOfflineEarnings(savedState.lastSavedAt);
+    saveState(); // マイグレーション結果(v2)+オフライン収益を即座に永続化
   } else {
     initDefaultState();
   }
@@ -675,6 +720,7 @@ fetch("data/master.json")
   .then((data) => {
     itemMaster = data.items;
     tankMaster = data.tanks;
+    if (data.config) gameConfig = { ...gameConfig, ...data.config };
     startGame();
   })
   .catch(() => {
