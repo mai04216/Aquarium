@@ -89,6 +89,30 @@ body {
   transform: translateX(20px);
 }
 
+.welcome-modal {
+  text-align: center;
+}
+
+.welcome-modal h2 {
+  margin: 0 0 8px;
+}
+
+.welcome-text {
+  font-size: 1.1rem;
+  margin: 0 0 16px;
+}
+
+.welcome-modal button {
+  padding: 10px 28px;
+  border: none;
+  border-radius: 999px;
+  background: #ffd447;
+  color: #1a1a1a;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
 .balance {
   color: #fff;
   font-size: 1.4rem;
