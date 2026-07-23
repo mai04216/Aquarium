@@ -1,5 +1,8 @@
-const tank = document.getElementById("tank");
 const balanceValue = document.getElementById("balance-value");
+const tanksViewport = document.getElementById("tanks-viewport");
+const tanksTrack = document.getElementById("tanks-track");
+const tankNavPrev = document.getElementById("tank-nav-prev");
+const tankNavNext = document.getElementById("tank-nav-next");
 
 // --- マスタデータ(F08/F11。data/master.json から読み込む。9章) ---
 // 経済バランスの調整は data/master.json の編集のみで行える。
@@ -17,28 +20,49 @@ function findItem(itemId) {
   return itemMaster.find((i) => i.id === itemId);
 }
 
-const DEFAULT_TANK_ID = "tank_basic";
-
-// 水槽状態(F11)。coinFish / placedDecorations はアクティブ水槽のライブ表現、
-// 非アクティブ水槽は tankData にシリアライズして保持する。
-let activeTankId = DEFAULT_TANK_ID;
-let ownedTankIds = [DEFAULT_TANK_ID];
-let tankData = {}; // { [tankId]: { placements: [...], decorations: [...] } }
-
 function findTank(tankId) {
   return tankMaster.find((t) => t.id === tankId);
 }
 
-function getActiveTank() {
-  return findTank(activeTankId) || findTank(DEFAULT_TANK_ID);
-}
+const DEFAULT_TANK_ID = "tank_basic";
 
-function getFishMax() {
-  return getActiveTank().fishMax;
-}
+// --- 水槽の状態(F11)。所持している水槽はすべて常時稼働し、
+//     コイン生成・演出は表示の有無に関わらず継続する。 ---
 
-function getDecoMax() {
-  return getActiveTank().decoMax;
+let ownedTankIds = [DEFAULT_TANK_ID];
+const tankRuntime = {}; // { [tankId]: { cardEl, tankEl, bubbleLayerEl, coinFish: [], placedDecorations: [] } }
+
+function createTankCard(tankDef) {
+  const card = document.createElement("div");
+  card.className = "tank-card";
+  card.dataset.tankId = tankDef.id;
+
+  const label = document.createElement("div");
+  label.className = "tank-card-label";
+  label.textContent = tankDef.name;
+  card.appendChild(label);
+
+  const tankEl = document.createElement("div");
+  tankEl.className = `tank ${tankDef.bgClass}`;
+
+  const bubbleLayerEl = document.createElement("div");
+  bubbleLayerEl.className = "bubble-layer";
+  tankEl.appendChild(bubbleLayerEl);
+
+  card.appendChild(tankEl);
+  tanksTrack.appendChild(card);
+
+  tankRuntime[tankDef.id] = {
+    cardEl: card,
+    tankEl,
+    bubbleLayerEl,
+    coinFish: [],
+    placedDecorations: [],
+  };
+
+  tankEl.addEventListener("click", (event) => onTankClick(tankDef.id, event));
+
+  return tankRuntime[tankDef.id];
 }
 
 function setupFishVisual(el, item, topPercentOverride) {
@@ -55,7 +79,8 @@ function setupFishVisual(el, item, topPercentOverride) {
   shape.style.backgroundImage = `url(${item.image})`;
 }
 
-function addFishToTank(item, topPercentOverride) {
+function addFishToTank(tankId, item, topPercentOverride) {
+  const rt = tankRuntime[tankId];
   const el = document.createElement("div");
   el.className = "fish tank-item";
   el.dataset.itemId = item.id;
@@ -64,10 +89,10 @@ function addFishToTank(item, topPercentOverride) {
   shape.className = "fish-shape";
   el.appendChild(shape);
 
-  tank.appendChild(el);
+  rt.tankEl.appendChild(el);
   setupFishVisual(el, item, topPercentOverride);
 
-  coinFish.push({
+  rt.coinFish.push({
     element: el,
     intervalSec: item.intervalSec,
     amount: item.amount,
@@ -75,7 +100,8 @@ function addFishToTank(item, topPercentOverride) {
   });
 }
 
-function addDecorationToTank(item, leftPercentOverride, bottomPercentOverride) {
+function addDecorationToTank(tankId, item, leftPercentOverride, bottomPercentOverride) {
+  const rt = tankRuntime[tankId];
   const el = document.createElement("div");
   el.className = "decoration tank-item";
   el.dataset.itemId = item.id;
@@ -92,8 +118,8 @@ function addDecorationToTank(item, leftPercentOverride, bottomPercentOverride) {
     el.style.animationDelay = `-${Math.random() * 3}s`;
   }
 
-  tank.appendChild(el);
-  placedDecorations.push({ element: el, bubbleSource: Boolean(item.bubbleSource) });
+  rt.tankEl.appendChild(el);
+  rt.placedDecorations.push({ element: el, bubbleSource: Boolean(item.bubbleSource) });
 }
 
 let coins = 0;
@@ -105,8 +131,8 @@ function addCoins(amount) {
   saveState();
 }
 
-function spawnCoinPopup(sourceEl, amount) {
-  const tankRect = tank.getBoundingClientRect();
+function spawnCoinPopup(tankEl, sourceEl, amount) {
+  const tankRect = tankEl.getBoundingClientRect();
   const fishRect = sourceEl.getBoundingClientRect();
 
   const popup = document.createElement("div");
@@ -115,30 +141,79 @@ function spawnCoinPopup(sourceEl, amount) {
   popup.style.left = `${fishRect.left - tankRect.left + fishRect.width / 2}px`;
   popup.style.top = `${fishRect.top - tankRect.top}px`;
 
-  tank.appendChild(popup);
+  tankEl.appendChild(popup);
   popup.addEventListener("animationend", () => popup.remove());
 }
 
-const coinFish = []; // アクティブ水槽の魚 [{ element, intervalSec, amount, lastCoinTime }]
-let placedDecorations = []; // アクティブ水槽の装飾 [{ element, bubbleSource }]
-
+// 全ての所持水槽から、表示の有無に関わらず自動でコインを回収する(F06/F07)
 function tick(now) {
-  for (const f of coinFish) {
-    const intervalMs = f.intervalSec * 1000;
-    const elapsed = now - f.lastCoinTime;
+  Object.values(tankRuntime).forEach((rt) => {
+    rt.coinFish.forEach((f) => {
+      const intervalMs = f.intervalSec * 1000;
+      const elapsed = now - f.lastCoinTime;
 
-    if (elapsed >= intervalMs) {
-      const times = Math.floor(elapsed / intervalMs);
-      const gained = Math.floor(times * f.amount * currentMultiplier());
-      addCoins(gained);
-      spawnCoinPopup(f.element, gained);
-      Sound.coin();
-      f.lastCoinTime += times * intervalMs;
-    }
-  }
+      if (elapsed >= intervalMs) {
+        const times = Math.floor(elapsed / intervalMs);
+        const gained = Math.floor(times * f.amount * currentMultiplier());
+        addCoins(gained);
+        spawnCoinPopup(rt.tankEl, f.element, gained);
+        Sound.coin();
+        f.lastCoinTime += times * intervalMs;
+      }
+    });
+  });
 
   requestAnimationFrame(tick);
 }
+
+// --- 水槽の表示切替(PC: 同時表示 / スマホ: 矢印+スワイプで1つずつ) ---
+
+let currentTankIndex = 0;
+
+function isMobileLayout() {
+  return window.matchMedia("(max-width: 700px)").matches;
+}
+
+function updateCarousel() {
+  if (!isMobileLayout()) {
+    tanksTrack.style.transform = "";
+    return;
+  }
+  currentTankIndex = Math.max(0, Math.min(currentTankIndex, ownedTankIds.length - 1));
+  tanksTrack.style.transform = `translateX(-${currentTankIndex * 100}%)`;
+}
+
+tankNavPrev.addEventListener("click", () => {
+  currentTankIndex = Math.max(0, currentTankIndex - 1);
+  updateCarousel();
+});
+
+tankNavNext.addEventListener("click", () => {
+  currentTankIndex = Math.min(ownedTankIds.length - 1, currentTankIndex + 1);
+  updateCarousel();
+});
+
+let touchStartX = null;
+
+tanksViewport.addEventListener("touchstart", (event) => {
+  touchStartX = event.touches[0].clientX;
+});
+
+tanksViewport.addEventListener("touchend", (event) => {
+  if (touchStartX === null || !isMobileLayout()) {
+    touchStartX = null;
+    return;
+  }
+  const dx = event.changedTouches[0].clientX - touchStartX;
+  touchStartX = null;
+  if (Math.abs(dx) < 40) return;
+
+  if (dx < 0) currentTankIndex = Math.min(ownedTankIds.length - 1, currentTankIndex + 1);
+  else currentTankIndex = Math.max(0, currentTankIndex - 1);
+  updateCarousel();
+});
+
+window.addEventListener("resize", updateCarousel);
 
 // --- ショップ(F08 S02) ---
 
@@ -209,10 +284,11 @@ function purchaseTank(tankId) {
   coins -= tankDef.price;
   balanceValue.textContent = coins;
   ownedTankIds.push(tankId);
-  tankData[tankId] = { placements: [], decorations: [] };
+  createTankCard(tankDef);
+  updateCarousel();
 
   updateShopButtons();
-  renderTankList();
+  renderInventory();
   saveState();
   Sound.purchase();
 }
@@ -257,15 +333,47 @@ closeShopBtn.addEventListener("click", () => {
 });
 
 // --- インベントリ+配置(F09 S03、F02) ---
+// 水槽をクリックするとその水槽を配置先にしてインベントリが開く。
+// 下部ナビから開いた場合はプルダウンで配置先の水槽を選べる。
 
 const openInventoryBtn = document.getElementById("open-inventory");
 const closeInventoryBtn = document.getElementById("close-inventory");
 const inventoryModal = document.getElementById("inventory-modal");
 const inventoryList = document.getElementById("inventory-list");
+const inventoryTankSelect = document.getElementById("inventory-tank-select");
 const fishCountInfo = document.getElementById("fish-count-info");
 
+let inventoryTargetTankId = null;
+
+function populateInventoryTankSelect() {
+  inventoryTankSelect.innerHTML = "";
+  ownedTankIds.forEach((tankId) => {
+    const opt = document.createElement("option");
+    opt.value = tankId;
+    opt.textContent = findTank(tankId).name;
+    inventoryTankSelect.appendChild(opt);
+  });
+  inventoryTankSelect.value = inventoryTargetTankId;
+}
+
+function openInventoryFor(tankId) {
+  inventoryTargetTankId = ownedTankIds.includes(tankId) ? tankId : ownedTankIds[0];
+  populateInventoryTankSelect();
+  inventoryModal.hidden = false;
+  renderInventory();
+}
+
+inventoryTankSelect.addEventListener("change", () => {
+  inventoryTargetTankId = inventoryTankSelect.value;
+  renderInventory();
+});
+
 function renderInventory() {
-  fishCountInfo.textContent = `配置中の魚: ${coinFish.length} / ${getFishMax()}　配置中の装飾: ${placedDecorations.length} / ${getDecoMax()}`;
+  const targetId = inventoryTargetTankId || ownedTankIds[0];
+  const rt = tankRuntime[targetId];
+  const tankDef = findTank(targetId);
+
+  fishCountInfo.textContent = `[${tankDef.name}] 配置中の魚: ${rt.coinFish.length} / ${tankDef.fishMax}　配置中の装飾: ${rt.placedDecorations.length} / ${tankDef.decoMax}`;
   inventoryList.innerHTML = "";
 
   if (inventory.length === 0) {
@@ -280,8 +388,8 @@ function renderInventory() {
     const item = findItem(itemTypeId);
     const isFull =
       item.category === "fish"
-        ? coinFish.length >= getFishMax()
-        : placedDecorations.length >= getDecoMax();
+        ? rt.coinFish.length >= tankDef.fishMax
+        : rt.placedDecorations.length >= tankDef.decoMax;
     const desc =
       item.category === "fish"
         ? `${item.intervalSec}秒ごとに${item.amount}コイン生成`
@@ -301,7 +409,10 @@ function renderInventory() {
 }
 
 function placeFish(itemId) {
-  if (coinFish.length >= getFishMax()) return;
+  const targetId = inventoryTargetTankId || ownedTankIds[0];
+  const rt = tankRuntime[targetId];
+  const tankDef = findTank(targetId);
+  if (rt.coinFish.length >= tankDef.fishMax) return;
 
   const entry = inventory.find((i) => i.itemTypeId === itemId);
   if (!entry || entry.count <= 0) return;
@@ -311,14 +422,17 @@ function placeFish(itemId) {
     inventory = inventory.filter((i) => i.itemTypeId !== itemId);
   }
 
-  addFishToTank(findItem(itemId));
+  addFishToTank(targetId, findItem(itemId));
   renderInventory();
   saveState();
   Sound.place();
 }
 
 function placeDecoration(itemId) {
-  if (placedDecorations.length >= getDecoMax()) return;
+  const targetId = inventoryTargetTankId || ownedTankIds[0];
+  const rt = tankRuntime[targetId];
+  const tankDef = findTank(targetId);
+  if (rt.placedDecorations.length >= tankDef.decoMax) return;
 
   const entry = inventory.find((i) => i.itemTypeId === itemId);
   if (!entry || entry.count <= 0) return;
@@ -328,7 +442,7 @@ function placeDecoration(itemId) {
     inventory = inventory.filter((i) => i.itemTypeId !== itemId);
   }
 
-  addDecorationToTank(findItem(itemId));
+  addDecorationToTank(targetId, findItem(itemId));
   renderInventory();
   saveState();
   Sound.place();
@@ -347,15 +461,14 @@ inventoryList.addEventListener("click", (event) => {
 });
 
 openInventoryBtn.addEventListener("click", () => {
-  inventoryModal.hidden = false;
-  renderInventory();
+  openInventoryFor(inventoryTargetTankId || ownedTankIds[0]);
 });
 
 closeInventoryBtn.addEventListener("click", () => {
   inventoryModal.hidden = true;
 });
 
-// --- 配置済みアイテムの移動・撤去(F03) ---
+// --- 配置済みアイテムの選択・移動・撤去(F03) ---
 
 const fishActionPanel = document.getElementById("fish-action-panel");
 const fishActionName = document.getElementById("fish-action-name");
@@ -364,14 +477,16 @@ const fishActionRemoveBtn = document.getElementById("fish-action-remove");
 const fishActionCancelBtn = document.getElementById("fish-action-cancel");
 
 let selectedItemEl = null;
+let selectedItemTankId = null;
 
-function selectItem(el) {
+function selectItem(el, tankId) {
   if (selectedItemEl === el) {
     deselectItem();
     return;
   }
   deselectItem();
   selectedItemEl = el;
+  selectedItemTankId = tankId;
   el.classList.add("selected");
 
   const item = findItem(el.dataset.itemId);
@@ -386,19 +501,21 @@ function selectItem(el) {
 function deselectItem() {
   if (selectedItemEl) selectedItemEl.classList.remove("selected");
   selectedItemEl = null;
+  selectedItemTankId = null;
   fishActionPanel.hidden = true;
 }
 
-function removeItemFromTank(el) {
+function removeItemFromTank(el, tankId) {
   const itemId = el.dataset.itemId;
   const item = findItem(itemId);
+  const rt = tankRuntime[tankId];
 
   if (item.category === "fish") {
-    const idx = coinFish.findIndex((f) => f.element === el);
-    if (idx !== -1) coinFish.splice(idx, 1);
+    const idx = rt.coinFish.findIndex((f) => f.element === el);
+    if (idx !== -1) rt.coinFish.splice(idx, 1);
   } else {
-    const idx = placedDecorations.findIndex((d) => d.element === el);
-    if (idx !== -1) placedDecorations.splice(idx, 1);
+    const idx = rt.placedDecorations.findIndex((d) => d.element === el);
+    if (idx !== -1) rt.placedDecorations.splice(idx, 1);
   }
   el.remove();
 
@@ -413,129 +530,43 @@ function removeItemFromTank(el) {
   saveState();
 }
 
-tank.addEventListener("click", (event) => {
+// 水槽クリック時の分岐: アイテムクリック→選択 / 選択中に同じ水槽の背景クリック→移動
+// / 別水槽の背景クリック→選択解除 / 未選択で背景クリック→その水槽を配置先にインベントリを開く
+function onTankClick(tankId, event) {
   const itemEl = event.target.closest(".tank-item");
   if (itemEl) {
-    selectItem(itemEl);
+    selectItem(itemEl, tankId);
     return;
   }
 
-  if (selectedItemEl && event.target === tank) {
-    const item = findItem(selectedItemEl.dataset.itemId);
-    if (item.category === "fish") {
-      const rect = tank.getBoundingClientRect();
-      const relY = (event.clientY - rect.top) / rect.height;
-      const topPercent = Math.min(85, Math.max(5, relY * 100));
-      selectedItemEl.style.top = `${topPercent}%`;
-      deselectItem();
-      saveState();
+  const rt = tankRuntime[tankId];
+  const clickedBackground = event.target === rt.tankEl;
+
+  if (selectedItemEl) {
+    if (selectedItemTankId === tankId && clickedBackground) {
+      const item = findItem(selectedItemEl.dataset.itemId);
+      if (item.category === "fish") {
+        const rect = rt.tankEl.getBoundingClientRect();
+        const relY = (event.clientY - rect.top) / rect.height;
+        const topPercent = Math.min(85, Math.max(5, relY * 100));
+        selectedItemEl.style.top = `${topPercent}%`;
+        saveState();
+      }
     }
+    deselectItem();
+    return;
   }
-});
+
+  if (clickedBackground) openInventoryFor(tankId);
+}
 
 fishActionRemoveBtn.addEventListener("click", () => {
   if (!selectedItemEl) return;
-  removeItemFromTank(selectedItemEl);
+  removeItemFromTank(selectedItemEl, selectedItemTankId);
   deselectItem();
 });
 
 fishActionCancelBtn.addEventListener("click", deselectItem);
-
-// --- 水槽切り替え(F11 S02/S01) ---
-
-function serializeActiveTank() {
-  return {
-    placements: coinFish.map((f) => ({
-      itemTypeId: f.element.dataset.itemId,
-      topPercent: parseFloat(f.element.style.top) || 50,
-    })),
-    decorations: placedDecorations.map((d) => ({
-      itemTypeId: d.element.dataset.itemId,
-      leftPercent: parseFloat(d.element.style.left) || 50,
-      bottomPercent: parseFloat(d.element.style.bottom) || 5,
-    })),
-  };
-}
-
-function clearTankDom() {
-  coinFish.forEach((f) => f.element.remove());
-  coinFish.length = 0;
-  placedDecorations.forEach((d) => d.element.remove());
-  placedDecorations.length = 0;
-}
-
-function buildTankFromData(data) {
-  (data.placements || []).forEach(({ itemTypeId, topPercent }) => {
-    const item = findItem(itemTypeId);
-    if (item) addFishToTank(item, topPercent);
-  });
-  (data.decorations || []).forEach(({ itemTypeId, leftPercent, bottomPercent }) => {
-    const item = findItem(itemTypeId);
-    if (item) addDecorationToTank(item, leftPercent, bottomPercent);
-  });
-}
-
-function applyTankBackground() {
-  tankMaster.forEach((t) => tank.classList.remove(t.bgClass));
-  tank.classList.add(getActiveTank().bgClass);
-}
-
-// アクティブ水槽を tankData に退避し、対象水槽をライブ表示へ切り替える
-function switchTank(tankId) {
-  if (!ownedTankIds.includes(tankId)) return;
-
-  deselectItem();
-  tankData[activeTankId] = serializeActiveTank();
-  clearTankDom();
-
-  activeTankId = tankId;
-  applyTankBackground();
-  buildTankFromData(tankData[tankId] || { placements: [], decorations: [] });
-
-  tankModal.hidden = true;
-  renderInventory();
-  renderTankList();
-  saveState();
-  Sound.ui();
-}
-
-const openTankBtn = document.getElementById("open-tank");
-const closeTankBtn = document.getElementById("close-tank");
-const tankModal = document.getElementById("tank-modal");
-const tankList = document.getElementById("tank-list");
-
-function renderTankList() {
-  tankList.innerHTML = "";
-  ownedTankIds.forEach((tankId) => {
-    const tankDef = findTank(tankId);
-    const isActive = tankId === activeTankId;
-    const li = document.createElement("li");
-    li.className = "shop-item";
-    li.innerHTML = `
-      <div class="shop-item-swatch ${tankDef.bgClass}"></div>
-      <div class="shop-item-info">
-        <div class="shop-item-name">${tankDef.name}</div>
-        <div class="shop-item-desc">魚${tankDef.fishMax}匹・装飾${tankDef.decoMax}個まで</div>
-      </div>
-      <button data-switch-tank="${tankId}" ${isActive ? "disabled" : ""}>${isActive ? "表示中" : "切り替え"}</button>
-    `;
-    tankList.appendChild(li);
-  });
-}
-
-tankList.addEventListener("click", (event) => {
-  const btn = event.target.closest("button[data-switch-tank]");
-  if (btn) switchTank(btn.dataset.switchTank);
-});
-
-openTankBtn.addEventListener("click", () => {
-  tankModal.hidden = false;
-  renderTankList();
-});
-
-closeTankBtn.addEventListener("click", () => {
-  tankModal.hidden = true;
-});
 
 // --- 設定(S04。サウンドON/OFF) ---
 
@@ -583,6 +614,7 @@ welcomeOkBtn.addEventListener("click", () => {
 
 // --- 餌やり(F14。2.3。バフ型・ペナルティなし。クールタイム制) ---
 // バフ・クールタイムはメモリ保持のみ(リロードでリセット)。オフライン中はバフ非適用。
+// バフは全水槽のコイン生成に効くため、餌やりの演出も所持している全水槽に表示する。
 
 const feedBtn = document.getElementById("feed-btn");
 const buffIndicator = document.getElementById("buff-indicator");
@@ -613,15 +645,18 @@ function feed() {
 }
 
 function spawnFoodPellets() {
-  for (let i = 0; i < 8; i++) {
-    const pellet = document.createElement("div");
-    pellet.className = "food-pellet";
-    pellet.style.left = `${10 + Math.random() * 80}%`;
-    pellet.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
-    pellet.style.setProperty("--fall", `${tank.clientHeight * (0.5 + Math.random() * 0.4)}px`);
-    tank.appendChild(pellet);
-    pellet.addEventListener("animationend", () => pellet.remove());
-  }
+  ownedTankIds.forEach((tankId) => {
+    const rt = tankRuntime[tankId];
+    for (let i = 0; i < 8; i++) {
+      const pellet = document.createElement("div");
+      pellet.className = "food-pellet";
+      pellet.style.left = `${10 + Math.random() * 80}%`;
+      pellet.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
+      pellet.style.setProperty("--fall", `${rt.tankEl.clientHeight * (0.5 + Math.random() * 0.4)}px`);
+      rt.tankEl.appendChild(pellet);
+      pellet.addEventListener("animationend", () => pellet.remove());
+    }
+  });
 }
 
 function updateFeedUi() {
@@ -648,20 +683,34 @@ feedBtn.addEventListener("click", feed);
 setInterval(updateFeedUi, 1000);
 
 // --- セーブ/ロード(F10。4.2のlocalStorage案に準拠) ---
+// 所持している水槽はすべて常時稼働のため、全ての所持水槽の状態をそのまま保存する。
 
 const SAVE_KEY = "myaquarium_save";
 const SAVE_VERSION = 2;
 
 function serializeState() {
-  // アクティブ水槽の現在のライブ状態を tankData に反映してから保存する
-  tankData[activeTankId] = serializeActiveTank();
+  const tanksOut = {};
+  ownedTankIds.forEach((tankId) => {
+    const rt = tankRuntime[tankId];
+    tanksOut[tankId] = {
+      placements: rt.coinFish.map((f) => ({
+        itemTypeId: f.element.dataset.itemId,
+        topPercent: parseFloat(f.element.style.top) || 50,
+      })),
+      decorations: rt.placedDecorations.map((d) => ({
+        itemTypeId: d.element.dataset.itemId,
+        leftPercent: parseFloat(d.element.style.left) || 50,
+        bottomPercent: parseFloat(d.element.style.bottom) || 5,
+      })),
+    };
+  });
+
   return {
     version: SAVE_VERSION,
     coins,
     inventory,
-    activeTankId,
     ownedTankIds,
-    tanks: tankData,
+    tanks: tanksOut,
     lastSavedAt: Date.now(),
   };
 }
@@ -678,7 +727,6 @@ function migrate(data) {
       version: 2,
       coins: data.coins,
       inventory: data.inventory,
-      activeTankId: DEFAULT_TANK_ID,
       ownedTankIds: [DEFAULT_TANK_ID],
       tanks: {
         [DEFAULT_TANK_ID]: {
@@ -712,45 +760,43 @@ function restoreState(data) {
     Array.isArray(data.ownedTankIds) && data.ownedTankIds.length
       ? data.ownedTankIds
       : [DEFAULT_TANK_ID];
-  tankData = data.tanks || {};
-  ownedTankIds.forEach((id) => {
-    if (!tankData[id]) tankData[id] = { placements: [], decorations: [] };
+
+  ownedTankIds.forEach((tankId) => {
+    const tankDef = findTank(tankId);
+    createTankCard(tankDef);
+
+    const saved = (data.tanks && data.tanks[tankId]) || { placements: [], decorations: [] };
+    (saved.placements || []).forEach(({ itemTypeId, topPercent }) => {
+      const item = findItem(itemTypeId);
+      if (item) addFishToTank(tankId, item, topPercent);
+    });
+    (saved.decorations || []).forEach(({ itemTypeId, leftPercent, bottomPercent }) => {
+      const item = findItem(itemTypeId);
+      if (item) addDecorationToTank(tankId, item, leftPercent, bottomPercent);
+    });
   });
-
-  activeTankId = ownedTankIds.includes(data.activeTankId)
-    ? data.activeTankId
-    : ownedTankIds[0];
-
-  clearTankDom();
-  applyTankBackground();
-  buildTankFromData(tankData[activeTankId]);
 
   updateShopButtons();
   renderInventory();
+  updateCarousel();
 }
 
 function initDefaultState() {
   ownedTankIds = [DEFAULT_TANK_ID];
-  activeTankId = DEFAULT_TANK_ID;
-  tankData = {
-    [DEFAULT_TANK_ID]: {
-      placements: [{ itemTypeId: "fish_goldfish", topPercent: 45 }],
-      decorations: [],
-    },
-  };
-  applyTankBackground();
-  buildTankFromData(tankData[DEFAULT_TANK_ID]);
+  const tankDef = findTank(DEFAULT_TANK_ID);
+  createTankCard(tankDef);
+  addFishToTank(DEFAULT_TANK_ID, findItem("fish_goldfish"), 45);
   renderInventory();
+  updateCarousel();
   saveState();
 }
 
 // 全所持水槽の配置魚から、毎秒のコイン生成レート合計を求める(F13)
 function totalCoinsPerSecond() {
   let sum = 0;
-  Object.values(tankData).forEach((t) => {
-    (t.placements || []).forEach(({ itemTypeId }) => {
-      const item = findItem(itemTypeId);
-      if (item && item.category === "fish") sum += item.amount / item.intervalSec;
+  Object.values(tankRuntime).forEach((rt) => {
+    rt.coinFish.forEach((f) => {
+      sum += f.amount / f.intervalSec;
     });
   });
   return sum;
@@ -802,13 +848,13 @@ fetch("data/master.json")
     );
   });
 
-// --- 泡演出(F12。常時の環境泡 + エアレーションからの泡) ---
+// --- 泡演出(F12。常時の環境泡 + エアレーションからの泡。全ての所持水槽で動作) ---
 
-const bubbleLayer = document.getElementById("bubble-layer");
-const MAX_BUBBLES = 40; // 描画負荷保護(9章)
+const MAX_BUBBLES_PER_TANK = 40; // 描画負荷保護(9章)
 
-function spawnBubble(leftPercent) {
-  if (bubbleLayer.childElementCount >= MAX_BUBBLES) return;
+function spawnBubble(tankId, leftPercent) {
+  const rt = tankRuntime[tankId];
+  if (!rt || rt.bubbleLayerEl.childElementCount >= MAX_BUBBLES_PER_TANK) return;
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
@@ -817,24 +863,29 @@ function spawnBubble(leftPercent) {
   bubble.style.height = `${size}px`;
   bubble.style.left = `${leftPercent}%`;
   bubble.style.setProperty("--drift", `${(Math.random() - 0.5) * 30}px`);
-  bubble.style.setProperty("--rise", `${tank.clientHeight}px`);
+  bubble.style.setProperty("--rise", `${rt.tankEl.clientHeight}px`);
   bubble.style.animationDuration = `${3 + Math.random() * 3}s`;
 
-  bubbleLayer.appendChild(bubble);
+  rt.bubbleLayerEl.appendChild(bubble);
   bubble.addEventListener("animationend", () => bubble.remove());
 }
 
 // 常時の控えめな環境泡
 setInterval(() => {
-  if (Math.random() < 0.6) spawnBubble(5 + Math.random() * 90);
+  ownedTankIds.forEach((tankId) => {
+    if (Math.random() < 0.6) spawnBubble(tankId, 5 + Math.random() * 90);
+  });
 }, 1400);
 
 // エアレーションからの泡(配置位置から多めに立ち上る)
 setInterval(() => {
-  placedDecorations
-    .filter((d) => d.bubbleSource)
-    .forEach((d) => {
-      const leftPercent = parseFloat(d.element.style.left) || 50;
-      spawnBubble(leftPercent + (Math.random() - 0.5) * 4);
-    });
+  ownedTankIds.forEach((tankId) => {
+    const rt = tankRuntime[tankId];
+    rt.placedDecorations
+      .filter((d) => d.bubbleSource)
+      .forEach((d) => {
+        const leftPercent = parseFloat(d.element.style.left) || 50;
+        spawnBubble(tankId, leftPercent + (Math.random() - 0.5) * 4);
+      });
+  });
 }, 500);

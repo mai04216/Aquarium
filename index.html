@@ -16,23 +16,24 @@
     <button class="settings-btn" id="open-settings" aria-label="設定">⚙</button>
   </div>
 
-  <div class="tank" id="tank">
-    <div class="bubble-layer" id="bubble-layer"></div>
-
-    <div class="fish-action-panel" id="fish-action-panel" hidden>
-      <div class="fish-action-name" id="fish-action-name"></div>
-      <p class="fish-action-hint" id="fish-action-hint">水槽内をクリックして位置を移動</p>
-      <div class="fish-action-buttons">
-        <button id="fish-action-remove">🎒 インベントリに戻す</button>
-        <button id="fish-action-cancel">✕ 選択解除</button>
-      </div>
+  <div class="fish-action-panel" id="fish-action-panel" hidden>
+    <div class="fish-action-name" id="fish-action-name"></div>
+    <p class="fish-action-hint" id="fish-action-hint">水槽内をクリックして位置を移動</p>
+    <div class="fish-action-buttons">
+      <button id="fish-action-remove">🎒 インベントリに戻す</button>
+      <button id="fish-action-cancel">✕ 選択解除</button>
     </div>
+  </div>
+
+  <div class="tanks-viewport" id="tanks-viewport">
+    <button class="tank-nav-arrow tank-nav-prev" id="tank-nav-prev" aria-label="前の水槽">‹</button>
+    <div class="tanks-track" id="tanks-track"></div>
+    <button class="tank-nav-arrow tank-nav-next" id="tank-nav-next" aria-label="次の水槽">›</button>
   </div>
 
   <div class="bottom-nav">
     <button id="open-shop">🛒 ショップ</button>
     <button id="open-inventory">🎒 インベントリ</button>
-    <button id="open-tank">🐟 水槽</button>
     <button id="feed-btn">🍤 餌やり</button>
   </div>
 
@@ -52,18 +53,12 @@
         <h2>インベントリ</h2>
         <button id="close-inventory" aria-label="閉じる">✕</button>
       </div>
+      <label class="inventory-tank-select-label">
+        配置先の水槽:
+        <select id="inventory-tank-select"></select>
+      </label>
       <p class="fish-count-info" id="fish-count-info"></p>
       <ul class="shop-list" id="inventory-list"></ul>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="tank-modal" hidden>
-    <div class="modal">
-      <div class="modal-header">
-        <h2>水槽の切り替え</h2>
-        <button id="close-tank" aria-label="閉じる">✕</button>
-      </div>
-      <ul class="shop-list" id="tank-list"></ul>
     </div>
   </div>
 
