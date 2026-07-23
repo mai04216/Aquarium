@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>マイアクアリウム(仮称)</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0b132b" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
 </head>
 <body>
   <div class="hud">
@@ -99,5 +102,15 @@
 
   <script src="sound.js"></script>
   <script src="script.js"></script>
+  <script>
+    // Service Worker 登録(PWA)
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => {
+          /* 登録失敗時もアプリは通常どおり動作する */
+        });
+      });
+    }
+  </script>
 </body>
 </html>
