@@ -612,6 +612,14 @@ welcomeOkBtn.addEventListener("click", () => {
   Sound.ui();
 });
 
+// --- モーダル: 背景(オーバーレイ)クリックで閉じる ---
+
+document.querySelectorAll(".modal-overlay").forEach((overlay) => {
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) overlay.hidden = true;
+  });
+});
+
 // --- 餌やり(F14。2.3。バフ型・ペナルティなし。クールタイム制) ---
 // バフ・クールタイムはメモリ保持のみ(リロードでリセット)。オフライン中はバフ非適用。
 // バフは全水槽のコイン生成に効くため、餌やりの演出も所持している全水槽に表示する。
