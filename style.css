@@ -288,6 +288,7 @@ body {
 .bottom-nav {
   width: min(90vw, 800px);
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
 }
@@ -300,10 +301,24 @@ body {
   background: #2b6cb0;
   color: #fff;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .bottom-nav button:hover {
   background: #2c5282;
+}
+
+/* スマホ縦画面: ボタンを2列で折り返す */
+@media (max-width: 480px) {
+  .bottom-nav {
+    gap: 8px;
+  }
+
+  .bottom-nav button {
+    flex: 1 1 40%;
+    font-size: 0.9rem;
+    padding: 12px 8px;
+  }
 }
 
 .modal-overlay {
