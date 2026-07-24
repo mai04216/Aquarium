@@ -240,6 +240,29 @@ window.addEventListener("resize", updateCarousel);
 
 let inventory = []; // [{ itemTypeId, count }]
 
+const getPopup = document.getElementById("get-popup");
+const getPopupImage = document.getElementById("get-popup-image");
+const getPopupText = document.getElementById("get-popup-text");
+let getPopupTimer = null;
+
+// 購入操作の視覚フィードバック(押せているか分かりづらい対策)
+function showGetPopup(item) {
+  getPopupImage.src = item.image;
+  getPopupImage.alt = item.name;
+  getPopupText.textContent = `${item.name}GET!`;
+
+  getPopup.hidden = false;
+  getPopup.style.animation = "none";
+  // 連続購入時にアニメーションを再生し直すためリフロー
+  void getPopup.offsetWidth;
+  getPopup.style.animation = "";
+
+  clearTimeout(getPopupTimer);
+  getPopupTimer = setTimeout(() => {
+    getPopup.hidden = true;
+  }, 1400);
+}
+
 const openShopBtn = document.getElementById("open-shop");
 const closeShopBtn = document.getElementById("close-shop");
 const shopModal = document.getElementById("shop-modal");
@@ -332,6 +355,7 @@ function purchaseItem(itemId) {
   renderInventory();
   saveState();
   Sound.purchase();
+  showGetPopup(item);
 }
 
 shopList.addEventListener("click", (event) => {
@@ -524,7 +548,10 @@ function renderActionPanel() {
       fishActionLevelupBtn.hidden = true;
     } else {
       fishActionLevelupBtn.hidden = false;
-      fishActionLevelupBtn.textContent = `⬆ レベルアップ(🪙${cost})`;
+      fishActionLevelupBtn.innerHTML = `
+        <span class="levelup-target">レベル${entry.level + 1}</span>
+        <span class="levelup-price">🪙${cost}</span>
+      `;
       fishActionLevelupBtn.disabled = coins < cost;
     }
     fishActionHint.textContent = "水槽内をクリックして位置を移動";
