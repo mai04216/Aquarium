@@ -113,6 +113,61 @@ body {
   cursor: pointer;
 }
 
+.get-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 25, 50, 0.95);
+  border: 2px solid #ffd447;
+  border-radius: 16px;
+  padding: 20px 32px;
+  pointer-events: none;
+  animation: get-popup-pop 1.4s ease-out forwards;
+}
+
+.get-popup-image {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.get-popup-text {
+  color: #ffd447;
+  font-weight: bold;
+  font-size: 1.2rem;
+  white-space: nowrap;
+}
+
+@keyframes get-popup-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
 .buff-indicator {
   color: #ffd447;
   font-weight: bold;
@@ -616,9 +671,23 @@ div.shop-item-swatch {
 }
 
 #fish-action-levelup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.2;
   background: #d4a017;
   color: #1a1a1a;
   font-weight: bold;
+}
+
+#fish-action-levelup .levelup-target {
+  font-size: 0.85rem;
+}
+
+#fish-action-levelup .levelup-price {
+  font-size: 0.75rem;
+  font-weight: normal;
 }
 
 #fish-action-levelup:hover {
