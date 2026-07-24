@@ -584,6 +584,12 @@ div.shop-item-swatch {
   margin-bottom: 4px;
 }
 
+.fish-action-level {
+  margin: 0 0 6px;
+  color: #ffd447;
+  font-size: 0.8rem;
+}
+
 .fish-action-hint {
   margin: 0 0 8px;
   opacity: 0.8;
@@ -607,4 +613,20 @@ div.shop-item-swatch {
 
 .fish-action-buttons button:hover {
   background: #2c5282;
+}
+
+#fish-action-levelup {
+  background: #d4a017;
+  color: #1a1a1a;
+  font-weight: bold;
+}
+
+#fish-action-levelup:hover {
+  background: #e6b52e;
+}
+
+#fish-action-levelup:disabled {
+  background: #555;
+  color: #aaa;
+  cursor: not-allowed;
 }

@@ -14,10 +14,29 @@ let gameConfig = {
   feedBuffMultiplier: 1.5,
   feedBuffDurationSec: 600,
   feedCooldownSec: 1800,
+  maxFishLevel: 5,
+  levelIntervalStepPct: 0.12,
+  minFishIntervalSec: 2,
+  levelUpCostMultipliers: [0.4, 0.7, 1.1, 1.6],
 }; // バランス設定(master.jsonで上書き)
 
 function findItem(itemId) {
   return itemMaster.find((i) => i.id === itemId);
+}
+
+// --- 魚のレベル(1〜maxFishLevel)。レベルアップで生成間隔が短縮する(生成量は不変)。 ---
+
+function effectiveIntervalSec(item, level) {
+  const multiplier = 1 - gameConfig.levelIntervalStepPct * (level - 1);
+  return Math.max(gameConfig.minFishIntervalSec, Math.floor(item.intervalSec * multiplier));
+}
+
+// レベルアップ費用。currentLevel が最大レベルの場合は null(これ以上上げられない)
+function levelUpCost(item, currentLevel) {
+  const multipliers = gameConfig.levelUpCostMultipliers;
+  const idx = currentLevel - 1;
+  if (currentLevel >= gameConfig.maxFishLevel || idx >= multipliers.length) return null;
+  return Math.round(item.price * multipliers[idx]);
 }
 
 function findTank(tankId) {
@@ -79,7 +98,7 @@ function setupFishVisual(el, item, topPercentOverride) {
   shape.style.backgroundImage = `url(${item.image})`;
 }
 
-function addFishToTank(tankId, item, topPercentOverride) {
+function addFishToTank(tankId, item, topPercentOverride, levelOverride = 1) {
   const rt = tankRuntime[tankId];
   const el = document.createElement("div");
   el.className = "fish tank-item";
@@ -94,8 +113,8 @@ function addFishToTank(tankId, item, topPercentOverride) {
 
   rt.coinFish.push({
     element: el,
-    intervalSec: item.intervalSec,
-    amount: item.amount,
+    itemId: item.id,
+    level: levelOverride,
     lastCoinTime: performance.now(),
   });
 }
@@ -128,6 +147,7 @@ function addCoins(amount) {
   coins += amount;
   balanceValue.textContent = coins;
   updateShopButtons();
+  if (!fishActionPanel.hidden) renderActionPanel();
   saveState();
 }
 
@@ -149,12 +169,13 @@ function spawnCoinPopup(tankEl, sourceEl, amount) {
 function tick(now) {
   Object.values(tankRuntime).forEach((rt) => {
     rt.coinFish.forEach((f) => {
-      const intervalMs = f.intervalSec * 1000;
+      const item = findItem(f.itemId);
+      const intervalMs = effectiveIntervalSec(item, f.level) * 1000;
       const elapsed = now - f.lastCoinTime;
 
       if (elapsed >= intervalMs) {
         const times = Math.floor(elapsed / intervalMs);
-        const gained = Math.floor(times * f.amount * currentMultiplier());
+        const gained = Math.floor(times * item.amount * currentMultiplier());
         addCoins(gained);
         spawnCoinPopup(rt.tankEl, f.element, gained);
         Sound.coin();
@@ -472,12 +493,47 @@ closeInventoryBtn.addEventListener("click", () => {
 
 const fishActionPanel = document.getElementById("fish-action-panel");
 const fishActionName = document.getElementById("fish-action-name");
+const fishActionLevel = document.getElementById("fish-action-level");
 const fishActionHint = document.getElementById("fish-action-hint");
+const fishActionLevelupBtn = document.getElementById("fish-action-levelup");
 const fishActionRemoveBtn = document.getElementById("fish-action-remove");
 const fishActionCancelBtn = document.getElementById("fish-action-cancel");
 
 let selectedItemEl = null;
 let selectedItemTankId = null;
+
+function findCoinFishEntry(tankId, el) {
+  return tankRuntime[tankId].coinFish.find((f) => f.element === el);
+}
+
+// 選択中アイテムの情報(レベル・レベルアップ費用など)をパネルに反映する
+function renderActionPanel() {
+  if (!selectedItemEl) return;
+
+  const item = findItem(selectedItemEl.dataset.itemId);
+  fishActionName.textContent = `選択中: ${item.name}`;
+
+  if (item.category === "fish") {
+    const entry = findCoinFishEntry(selectedItemTankId, selectedItemEl);
+    const interval = effectiveIntervalSec(item, entry.level);
+    fishActionLevel.hidden = false;
+    fishActionLevel.textContent = `Lv.${entry.level} / ${gameConfig.maxFishLevel}(${interval}秒ごとに${item.amount}コイン)`;
+
+    const cost = levelUpCost(item, entry.level);
+    if (cost === null) {
+      fishActionLevelupBtn.hidden = true;
+    } else {
+      fishActionLevelupBtn.hidden = false;
+      fishActionLevelupBtn.textContent = `⬆ レベルアップ(🪙${cost})`;
+      fishActionLevelupBtn.disabled = coins < cost;
+    }
+    fishActionHint.textContent = "水槽内をクリックして位置を移動";
+  } else {
+    fishActionLevel.hidden = true;
+    fishActionLevelupBtn.hidden = true;
+    fishActionHint.textContent = "海藻・岩は移動できません(撤去のみ)";
+  }
+}
 
 function selectItem(el, tankId) {
   if (selectedItemEl === el) {
@@ -489,12 +545,7 @@ function selectItem(el, tankId) {
   selectedItemTankId = tankId;
   el.classList.add("selected");
 
-  const item = findItem(el.dataset.itemId);
-  fishActionName.textContent = `選択中: ${item.name}`;
-  fishActionHint.textContent =
-    item.category === "fish"
-      ? "水槽内をクリックして位置を移動"
-      : "海藻・岩は移動できません(撤去のみ)";
+  renderActionPanel();
   fishActionPanel.hidden = false;
 }
 
@@ -503,6 +554,24 @@ function deselectItem() {
   selectedItemEl = null;
   selectedItemTankId = null;
   fishActionPanel.hidden = true;
+}
+
+function levelUpSelectedFish() {
+  if (!selectedItemEl || !selectedItemTankId) return;
+
+  const entry = findCoinFishEntry(selectedItemTankId, selectedItemEl);
+  const item = findItem(entry.itemId);
+  const cost = levelUpCost(item, entry.level);
+  if (cost === null || coins < cost) return;
+
+  coins -= cost;
+  balanceValue.textContent = coins;
+  entry.level += 1;
+
+  updateShopButtons();
+  renderActionPanel();
+  saveState();
+  Sound.purchase();
 }
 
 function removeItemFromTank(el, tankId) {
@@ -567,6 +636,7 @@ fishActionRemoveBtn.addEventListener("click", () => {
 });
 
 fishActionCancelBtn.addEventListener("click", deselectItem);
+fishActionLevelupBtn.addEventListener("click", levelUpSelectedFish);
 
 // --- 設定(S04。サウンドON/OFF) ---
 
@@ -702,7 +772,8 @@ function serializeState() {
     const rt = tankRuntime[tankId];
     tanksOut[tankId] = {
       placements: rt.coinFish.map((f) => ({
-        itemTypeId: f.element.dataset.itemId,
+        itemTypeId: f.itemId,
+        level: f.level,
         topPercent: parseFloat(f.element.style.top) || 50,
       })),
       decorations: rt.placedDecorations.map((d) => ({
@@ -774,9 +845,9 @@ function restoreState(data) {
     createTankCard(tankDef);
 
     const saved = (data.tanks && data.tanks[tankId]) || { placements: [], decorations: [] };
-    (saved.placements || []).forEach(({ itemTypeId, topPercent }) => {
+    (saved.placements || []).forEach(({ itemTypeId, topPercent, level }) => {
       const item = findItem(itemTypeId);
-      if (item) addFishToTank(tankId, item, topPercent);
+      if (item) addFishToTank(tankId, item, topPercent, level || 1);
     });
     (saved.decorations || []).forEach(({ itemTypeId, leftPercent, bottomPercent }) => {
       const item = findItem(itemTypeId);
@@ -804,7 +875,8 @@ function totalCoinsPerSecond() {
   let sum = 0;
   Object.values(tankRuntime).forEach((rt) => {
     rt.coinFish.forEach((f) => {
-      sum += f.amount / f.intervalSec;
+      const item = findItem(f.itemId);
+      sum += item.amount / effectiveIntervalSec(item, f.level);
     });
   });
   return sum;
